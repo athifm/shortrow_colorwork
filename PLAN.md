@@ -13,9 +13,11 @@ Nothing has been coded yet. This file is the agreed starting point.
 
 | Question | Answer |
 |---|---|
+| Audience | **Other knitters, publicly** — strangers arrive from a link and use it without us there |
 | Technique | **Sculptural wedge-region short rows** — colour areas built as short-row wedges, unequal row counts per column, so the fabric flares and curves |
 | Shape vs. picture | **Both modes**, chosen per project: shape-constrained, and image-driven |
-| Technology | **Framework + build** — Vite |
+| Technology | **Svelte 5 + Vite + TypeScript** |
+| The model | **Ours to work out, never the user's** — §2.4. They get parameters and options; we get the physics |
 | Who writes it | **I implement; you steer and correct** — with the knitting mathematics treated as your territory, and the plumbing (UI, canvas, files, persistence) as mine |
 | Outputs | Written row-by-row instructions · printable chart · interactive row tracker · fabric preview — **all four** |
 | Later | Other colorwork methods (stranded, intarsia, mosaic) |
@@ -113,39 +115,140 @@ hard-code, and they belong to `methods/shortrow/topology`.
    work — it lies flat and reads the same on both sides — so garter is the
    default, with stockinette available.
 
-### 2.4 What we are guessing — the model
+### 2.4 What we are guessing, and who is allowed to see it
 
-These are claims about how yarn behaves, and **every one is a guess until
-something has been knitted and measured.** They live in one module,
-`model/physical`, as named parameters with stated defaults — never as constants
-sprinkled through the planner.
+The rules above are combinatorial and certain. Everything in this section is a
+claim about how yarn behaves, and **every one is a guess until something has been
+knitted and measured.**
 
-| Parameter | First guess | What settles it |
-|---|---|---|
-| Stitch width `w`, height `h` | 4.5 mm × 3.3 mm | an ordinary gauge swatch |
-| Flare per short-row pair | `θ ≈ 2h/(s·w)` | knit one wedge, measure its angle |
-| Row gauge near a turn | same as elsewhere | the same wedge — compare its two edges |
-| Steepest join before it gapes | unknown | a two-colour test piece |
-| Edge stitches consumed by a join | 1 per row | the same two-colour piece |
-| Whether a height profile lies flat | residual energy threshold | comparing predictions against real pieces |
+The important decision is not what the guesses are. It is **who has to care about
+them.** Every quantity the app needs falls into exactly one of three categories,
+and the category decides where it lives and whether a user ever sees it.
 
-Two consequences for the code:
+**Parameters — the user supplies them.** These genuinely vary from project to
+project and from knitter to knitter, and every one is something an ordinary
+knitting pattern already asks for. Nothing here is novel or intimidating:
+
+> gauge (stitches and rows per 10 cm) · yarn colours · the picture · finished
+> size · shape · garter or stockinette · preferred turn technique
+
+**Options — the user chooses, because there is no correct answer.** These are
+genuine design trade-offs, and it would be presumptuous for the app to decide
+them:
+
+> faithful to the picture ↔ simple to knit · how many ends they are willing to
+> weave in
+
+**The model — ours to work out, and never the user's problem.** This is the
+category that does not exist yet, and it is important to be precise about how
+little we know:
+
+| Quantity | Current hypothesis | Confidence | What settles it |
+|---|---|---|---|
+| Flare per short-row pair | `θ ≈ 2h/(s·w)` | **the form itself is a guess** | knit one wedge, measure its angle |
+| Row gauge near a turn | same as elsewhere | unlikely to be exactly true | the same wedge — compare its two edges |
+| Steepest join before it gapes | — | no hypothesis yet | a two-colour test piece |
+| Edge stitches consumed by a join | 1 per row | plausible, untested | the same two-colour piece |
+| Flat-or-not threshold | residual energy | form untested | predictions checked against real pieces |
+
+This table has two ways to earn confidence, not one. **Measured** — we knit a
+test piece ourselves and read it under our own gauge — sits above
+**documented** — pulled from a real, published, working example somebody else
+made, extracted by us but without our own conditions to control. Both outrank
+reasoning from geometry alone. See §2.5.
+
+#### The categories will move, and the code must let them
+
+`θ ≈ 2h/(s·w)` is not a law with an unknown coefficient. It is a guess at the
+*shape of the relation*, and knitting a wedge may tell us the relation is
+different in kind — that it bends with the size of the wedge, or depends on the
+turn technique, or on the yarn.
+
+That has a consequence people usually get wrong. **Once we understand the model,
+some of what sits in this table stops being a fixed constant and becomes an
+ordinary parameter** — a number the user supplies, or one that falls out of their
+gauge, or one that follows from which turn technique they picked. We cannot say
+now which will land where. So:
+
+- **A quantity's category is data, not architecture.** Each entry in
+  `model/physical` declares whether it is fixed, derived from gauge, or supplied
+  by the user. Moving one between categories is editing a field — never a
+  refactor, never a change to the planner.
+- **The relation is a function, not a coefficient.** `flare(span, w, h, technique)`
+  can be replaced wholesale when we learn its shape is wrong. Nothing that calls
+  it has to change.
+- **Confidence is recorded next to the value**, because a number we fitted from a
+  measured wedge and a number I invented while writing this plan should not look
+  alike in the code.
+
+What does *not* change with any of this: none of it is the user's problem. Before
+we understand the model they are protected from our uncertainty; afterwards they
+are given whichever few quantities genuinely vary, in the ordinary language of a
+knitting pattern. The boundary moves; the principle does not.
+
+#### Consequences for the code
 
 - **The planner asks the model; it never assumes.** Any line of planner code that
-  wants to know how far a wedge flares calls into `model/physical`. Then changing
-  our mind is one edit, not an archaeology expedition.
-- **The model is measurable, not merely adjustable.** `planned_pooling` got this
-  right and it is the single most valuable thing to carry over: it never asked
-  you to *tune* yarn consumption, it asked you to knit a swatch, measure it, and
-  derived the number. Same here — "knit this wedge, tell me its two edge lengths
-  and the angle between them" and the app corrects its own flare model. Iteration
-  is then something the app does from your knitting, not something I do by
-  editing constants between sessions.
-- **Model parameters are saved inside the project file**, so improving the model
-  never silently changes a pattern you are halfway through knitting. Old projects
-  keep the numbers they were planned with, and say so.
+  wants to know how far a wedge flares calls into `model/physical`. Changing our
+  mind is then one edit rather than an archaeology expedition. Enforced by a test
+  that fails if a planner module contains a bare numeric constant — because this
+  rule dies the first time somebody hardcodes a `0.7` at eleven at night.
+- **`model/physical` holds relations, not just numbers.** Each entry carries its
+  current form, its category, its provenance — which test piece produced it and
+  when — and how much we trust it. Read-only at runtime, and expected to be
+  rewritten several times before it settles.
+- **Learning happens in development, not in the app.** `planned_pooling` derived
+  yarn consumption from swatches the user measured, which was right — there, the
+  user and the developer were the same person. Here they are not, so the same
+  machinery moves into a workbench (§3.6) that only we ever open. The app ships
+  already knowing.
+- **Model constants are stamped into each project file**, so improving the model
+  never silently changes a pattern somebody is halfway through knitting.
 
-### 2.5 Joining wedges — currently the weakest part
+#### When the model is wrong for somebody
+
+It will be, eventually, and they will have no knob to reach for. So the pattern
+states **checkable predictions** at a few points — *"after the first wedge your
+top edge should measure about 34 cm"* — and a knitter whose work disagrees finds
+out early, cheaply, and can tell us. They verify; they do not configure.
+
+Behind that sits exactly **one hidden page** listing the constants, with import
+and export of a model file. It is one page rather than controls scattered through
+the interface, and nothing in the normal flow mentions or links to it. It exists
+for the determined, and for us when diagnosing a report.
+
+### 2.5 Learning from what already exists, before knitting to find out
+
+M1 and M2 are the method of last resort: discover the model by knitting it from
+nothing. It isn't the cheapest method available — a great many short-row
+colorwork pieces have already been made and published, and some of that is
+photographable or watchable. Before either test piece, a research pass over
+whatever patterns and tutorials we can get hold of, in two passes, always in
+that order:
+
+**Pass A — does a real example break the model?** Checked against §2.3's rules
+and §2.2's wedge-and-flare picture, one at a time. A genuine disagreement here
+outweighs any number Pass B could extract, because it's the one outcome that
+would actually change the plan rather than fill in a table.
+
+**Pass B — extract what's measurable.** For sources that survive Pass A: span in
+stitches, row count, a photographed angle, which turn technique, how a join is
+described — in our own words, our own counts, never the source image or its
+text reproduced into the repo. Each becomes a **reference observation**,
+logged in `research/observations.md`.
+
+A photo or a paused video frame is the reliable channel — read directly and
+extracted with reasonable confidence. A bare video link is weaker than it
+looks: the video cannot be watched end to end, only fetched for its page text
+or jumped to a timestamp that's been pointed out. A link plus a timestamp is a
+source; a bare link mostly isn't yet.
+
+Confirmed, extracted numbers move the relevant row in §2.4's table from
+`invented`/`derived` to `documented`, citing the observation. M1 then goes in
+testing an informed guess instead of discovering one from nothing, and may
+shrink accordingly. `research/` is deliberately outside git — see §7.
+
+### 2.6 Joining wedges — currently the weakest part
 
 When a new wedge butts against a finished one, the row-end stitch is worked
 together with the neighbour's edge stitch. I am fairly confident of the shape of
@@ -155,7 +258,7 @@ past some angle. Flagged here because it is the assumption most likely to be
 wrong, and it is why the two-colour test piece (§5, M2) comes before any region
 planner exists.
 
-### 2.6 The two project modes
+### 2.7 The two project modes
 
 These map cleanly onto two different geometry engines, which is why supporting
 both is less than twice the work.
@@ -175,7 +278,7 @@ proposes a wedge placement, shows you the resulting shape and the resulting
 distortion of your image, and you drag boundaries while it re-simulates. Geometry
 here needs the general solver (§3.4), not the analytic one.
 
-### 2.7 The distortion problem — the most important thing on screen
+### 2.8 The distortion problem — the most important thing on screen
 
 You chose sculptural. That means the fabric flares, which means **your picture
 will be stretched by the flare**, and the amount depends on where in the piece it
@@ -232,7 +335,7 @@ Pure core — no DOM, all unit-tested:
 
 | Module | Responsibility |
 |---|---|
-| `model/physical` | **every parameter we are guessing** (§2.4) — flare, gauge, turn and join allowances — with defaults, provenance, and the solver that corrects them from a measured test piece |
+| `model/physical` | **everything we are guessing** (§2.4) — flare, turn gauge, join allowances — each with its current relation, category, provenance and confidence. Read-only at runtime |
 | `color/` | sRGB ↔ Lab, ΔE, palette matching |
 | `palette/` | yarn palette model — owned colours, quantisation to them, or free choice |
 | `image/` | decode, crop, gauge-aware resample, posterise, morphological cleanup |
@@ -254,6 +357,13 @@ UI, in Svelte:
 | `views/chart` | printable chart, print stylesheet |
 | `views/tracker` | row-by-row knitting mode |
 | `panels/` | the controls |
+
+Development only, and **excluded from the production build**:
+
+| Module | Responsibility |
+|---|---|
+| `dev/calibrate` | the workbench of §3.6 — measurements in, fitted relations out |
+| `dev/model` | the one hidden page listing the constants, with model import/export |
 
 **Module size budget: 400 lines.** `planned_pooling`'s `app.js` reached 1770 and
 `controls.js` 1011, and both got hard to move around in. Splitting is cheap when
@@ -313,6 +423,27 @@ roughness, against fidelity to the image. **That trade-off becomes a slider in t
 UI** — "faithful ↔ simple to knit" — rather than a constant buried in the code.
 Making the trade-off visible and adjustable is the single best interface decision
 available here.
+
+### 3.6 The calibration workbench — ours, not the user's
+
+A page in the repository that is not part of the app. Its own route,
+`/calibrate`, excluded from the production build and unreachable from the
+interface. `planned_pooling`'s `test-calibration.html` was the same idea.
+
+What it does:
+
+1. Prints the instructions for a test piece — "cast on 60, turn every second row
+   3 stitches short, 20 pairs, bind off".
+2. Records what the app **predicted** that piece would measure.
+3. Takes what it **actually** measured.
+4. Fits the relation, and emits a TypeScript file we read, sanity-check and
+   commit.
+
+It also carries the **prediction log** — predicted, measured, and what changed as
+a result, one entry per test piece. Cheap to keep, and the only way to see
+whether the model is genuinely improving rather than merely changing.
+
+The output of this page is source code. The app itself never runs it.
 
 ---
 
@@ -374,12 +505,14 @@ a genuine strength and an explicit convention here.
 7 000 cells before, plausibly 60 000 now, plus glyph shapes rather than
 rectangles. Canvas 2D should still hold. WebGL only if measurement says so.
 
-**11. Measurement beat guessing.**
-The calibration solver — swatches in, real per-stitch consumption out — is what
-made predictions trustworthy. That code ports directly for yarn quantities per
-colour. The same discipline applies to gauge, with one addition specific to this
-project: **short rows change row gauge near turns**, so the app should ask you to
-knit a small test wedge and report it before committing to a large piece.
+**11. Measurement beat guessing — but the measuring moves to us.**
+The calibration solver made predictions trustworthy because it derived numbers
+from swatches instead of asking anyone to tune them. Keep the discipline; change
+who performs it. There, the user and the developer were the same person, so
+asking for measurements was asking the developer to do development. Here they are
+strangers, so the measuring happens at M1 and M2 in the workbench, and what
+reaches them is an app that already knows. The solver code itself still ports
+directly, for yarn quantities per colour at M8.
 
 ---
 
@@ -388,68 +521,79 @@ knit a small test wedge and report it before committing to a large piece.
 Each ends with something visible and usable.
 
 Reordered around one principle: **the model cannot be settled by reasoning, so
-every guess in §2.4 gets tested by something knitted as early as it possibly can
-be.** The first two milestones exist only to produce test pieces. Nothing about
-pictures happens until the geometry has been checked against yarn.
+every guess in §2.4 gets tested against reality as early as it possibly can be
+— published examples first, knitting second, since a photo is cheaper than an
+evening's yarn.** The first two milestones exist only to produce test pieces,
+and a research pass (§2.5) precedes them. Nothing about pictures happens until
+the geometry has been checked against something real.
 
 | | Milestone | Ends with |
 |---|---|---|
-| **M0** | Scaffold: Vite, Svelte, TS, Vitest, Pages workflow, `model/physical` with its defaults written down | A deployed page, and every guess named in one file |
-| **M1** | One wedge: predict its shape, print instructions for it, take back the measurements | **Knit one wedge.** Cast on, turn every other row, bind off — an evening. Tests flare and turn gauge in isolation, and the app corrects itself from what you measured |
-| **M2** | Two wedges in two colours, joined | **Knit the join.** Tests §2.5, the assumption most likely to be wrong, while it is still cheap to be wrong about |
-| **M3** | `shape/` + `mesh/` + analytic layout + fabric view + needle view | A whole shawl's geometry on screen, in both spaces, now built on a model that has met yarn |
-| **M4** | `image/` + `color/` + `palette/`, sampling onto the mesh | Drop in a photo, see it warped onto the shawl in yarn colours — first *"oh"* moment |
+| **M0** | Scaffold: Vite, Svelte, TS, Vitest, Pages workflow, `model/physical` | A deployed page, and every guess named in one file with its category and confidence |
+| *before M1* | Research pass (§2.5) over whatever patterns and tutorials we have | §2.4's table has as many rows moved to `documented` as the material allows |
+| **M1** | Single-wedge predictor, its printed instructions, and the workbench (§3.6) | **We knit one wedge.** Cast on, turn every other row, bind off — an evening. Confirms (or corrects) a `documented` hypothesis rather than discovering one blind |
+| **M2** | Two wedges in two colours, joined | **We knit the join.** Tests §2.6, the assumption most likely to be wrong, while being wrong is still cheap |
+| **M3** | `shape/` + `mesh/` + analytic layout + fabric view + needle view | A whole shawl's geometry on screen, in both spaces, on a model that has now met yarn. **First end-user-facing work** |
+| **M4** | `image/` + `color/` + `palette/`, sampling onto the mesh | Drop in a picture, see it warped onto the shawl in yarn colours — first *"oh"* moment. Decide here whether end users get the needle view |
 | **M5** | `methods/shortrow/`: decomposition, dependency order, cycle breaking, turn scheduling, validation | A full plan: regions numbered, turns marked, honest warnings |
-| **M6** | `instructions/` + printable chart | A complete pattern for a real piece |
+| **M6** | `instructions/` + printable chart + checkpoint predictions | A complete pattern for a real piece |
 | **M7** | Tracker, persistence, project files | Knit from a phone without losing your place |
 | **M8** | `estimate/` ported from `planned_pooling` | "You need 340 m of the blue" |
-| **M9** | Image-driven mode: relaxation solver, assisted wedge placement | The second, harder project mode |
-| **M10** | A second colorwork method — stranded is the easiest | Proof the method boundary is real |
+| **M9** | Onboarding, example gallery, image guidance, mobile, accessibility | **Fit to be found by a stranger** (§8) |
+| **M10** | Image-driven mode: relaxation solver, assisted wedge placement | The second, harder project mode |
+| **M11** | A second colorwork method — stranded is the easiest | Proof the method boundary is real |
 
-**Why M1 and M2 look so small.** Each tests exactly one guess, with nothing else
-in the way. If a wedge comes out at 40° when the app predicted 55°, that is
-unambiguous — there is only one thing it could be. Discovering the same error at
-M6, inside a hundred-region pattern, tells you almost nothing about its cause.
-Cheap tests, run early, in isolation.
+**M1 and M2 are not features.** They exist to produce two knitted objects and the
+numbers that come off them. Nobody but us will ever see either page. The
+end-user-facing app begins at M3, standing on a model that has been measured
+rather than imagined.
 
-**Keep a prediction log.** Every test piece records what the app predicted, what
-you measured, and what changed as a result. It is a few lines of JSON, and it is
-the only way to see whether the model is actually getting better rather than just
-getting different.
+**Why they look so small.** Each tests one guess with nothing else in the way. If
+a wedge comes out at 40° when the app predicted 55°, that is unambiguous — there
+is only one thing it could be. The same discrepancy discovered at M6, inside a
+hundred-region pattern, tells you almost nothing about its cause.
 
 **On the method plugin interface:** I will *not* design it up front. An interface
 with one implementation is invariably the wrong interface. Short-row code stays
 behind a module boundary so extraction is mechanical, and the actual interface
-gets written at M8 when there is a second case to generalise from.
+gets written at M11 when there is a second case to generalise from.
 
 ---
 
 ## 6. Risks, ranked
 
-1. **My model of the fabric in §2 is wrong or partial.** Certainly true in
-   places. Not mitigated by trying harder to be right up front — the physical
-   half of the model cannot be settled by reading, only by knitting. Mitigated
-   instead by *structure*: guesses isolated in `model/physical`, the planner
-   forbidden from holding constants of its own, and M1/M2 testing each guess
-   against yarn before anything is built on top of it. Reading a published
-   pattern is still worth an hour, but as a source of hypotheses, not as proof.
+1. **The model in §2.4 is wrong in kind, not merely in its numbers.** The most
+   likely single failure. `θ ≈ 2h/(s·w)` is a guess at the *shape* of the
+   relation, and a knitted wedge may show it depends on things it does not
+   currently mention. Not mitigated by thinking harder — this cannot be settled
+   by reading, only by knitting. Mitigated by *structure*: relations expressed as
+   replaceable functions, categories stored as data so a quantity can move from
+   fixed to user-supplied without a refactor, the planner forbidden from holding
+   constants, and M1/M2 testing each guess against yarn before anything is built
+   on top of it.
 2. **Image-driven mode may not be fully automatable.** Planned as assisted rather
    than automatic, and scheduled late so the app is already valuable without it.
 3. **Designs that will not lie flat.** Inherent to sculptural work. Handled by
    detecting it and saying so, not by preventing it — sometimes cupping is what
    you wanted.
-4. **Gauge near turns differs from swatch gauge.** Handled by measurement at M6,
-   and by the test piece at M4.
+4. **Gauge near turns differs from swatch gauge.** Measured at M1, and absorbed
+   into the model rather than into the user's lap.
 5. **Region count explodes on photographic input.** Mitigated by no dithering,
    morphological cleanup, and the faithful↔simple slider. Photographs of faces
    will never work well; graphic images with flat colour areas will work
    beautifully. The app should be honest about that in its example gallery.
 6. **Performance on large meshes.** Mitigated by workers and memoisation, and by
-   measuring at M2 rather than assuming.
+   measuring at M4 rather than assuming.
 
 ---
 
 ## 7. Conventions
+
+**The governing UI rule.** The user never configures the model. They give the app
+what a knitting pattern would ask for anyway, and choose where a design choice
+genuinely exists. Anything we can work out once, we work out once and ship the
+answer. Where we have not worked it out yet, they are shielded from the fact
+rather than enlisted to help.
 
 - Comments explain **why**, not what. Follow `planned_pooling`'s voice.
 - UI text is written for a knitter, in plain English, no jargon that a pattern
@@ -460,15 +604,54 @@ gets written at M8 when there is a second case to generalise from.
   GitHub is the backup.
 - Units: metric internally (millimetres, metres), displayed in whatever the user
   picked. Same approach as `planned_pooling`, which got this right.
+- Research material — pattern photos, video frames, our notes on them — lives in
+  `research/` and is never committed (§2.5). Only what we derive from it, cited
+  and confidence-tagged, crosses into `src/model/physical.ts`. Because that
+  folder sits outside git, it also sits outside "GitHub is the backup" above —
+  the one deliberate exception to that rule.
 
 ---
 
-## 8. Immediate next steps
+## 8. Shipping it to strangers
 
-1. **Me**: finish M0 — test runner, publishing workflow, and `model/physical`
-   with every guess from §2.4 written down as a named default.
+`planned_pooling` was for one person who could ask its author what a control
+meant. This one is for knitters who will arrive from a link, alone, and give it
+about a minute. That changes real things, and M9 exists to pay for them.
+
+**Nothing leaves the browser.** No backend, no accounts, no uploads — the picture
+is decoded and processed locally and never sent anywhere. That keeps hosting
+free, leaves nothing to breach, and is worth stating plainly on the page, because
+people are right to hesitate before handing their artwork to a website.
+
+**The technique needs explaining, not just the app.** A visitor may never have
+seen sculptural short-row colorwork. The landing page has to show what the thing
+*is* before asking anyone to upload anything.
+
+**Be honest about what works.** A photograph of a face will produce hundreds of
+regions and a pattern nobody could knit. A flat graphic image with a handful of
+colours will produce something lovely. The app should lead with examples that say
+so, rather than let people find out through failure and conclude the app is
+broken.
+
+**Bad input has to be survivable** — enormous images, single-colour images,
+transparency, animated GIFs, an absurd gauge, a shape smaller than one wedge.
+
+**It will be opened on a phone**, at a yarn shop, to check something mid-project.
+Mobile and accessibility are requirements, not polish.
+
+**Rights.** People will feed in artwork they do not own. One short, non-preachy
+line saying they are responsible for what they upload, and no more than that.
+
+---
+
+## 9. Immediate next steps
+
+1. **Me**: M0 — test runner, publishing workflow, `model/physical` with every
+   guess of §2.4 written down with its category and confidence, and the dev
+   directory proven to stay out of the production build.
 2. **Me**: M1 — the single-wedge predictor, its printed instructions, and the
-   form that takes your measurements back.
-3. **You**: knit that wedge. That is the first real data this project has.
+   workbench that takes the measurements back.
+3. **You**: knit that wedge. It is the first real data this project will have,
+   and everything in §2.4 is waiting on it.
 4. **You**, whenever convenient: name the shapes you want in the library at M3,
    in priority order.

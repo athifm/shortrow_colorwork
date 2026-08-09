@@ -1,0 +1,16 @@
+{
+  /* Tests only. Separate from tsconfig.app.json because tests legitimately use
+     node APIs — the architecture tests walk the source tree with node:fs — and
+     the app itself must never be able to. */
+  "extends": "@tsconfig/svelte/tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node", "vitest/globals"],
+    "noEmit": true,
+    "moduleDetection": "force"
+  },
+  "include": ["src/**/*.test.ts"]
+}

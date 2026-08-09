@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Private research workspace: our notes on published patterns/tutorials, and
+# the source photos/screenshots themselves. Deliberately never published --
+# see PLAN.md section 2.5. Only our own derived numbers, via
+# src/model/physical.ts, ever leave this folder. Not backed up by pushing to
+# GitHub; that's the accepted trade-off for material we shouldn't redistribute.
+research/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

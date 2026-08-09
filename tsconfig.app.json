@@ -17,5 +17,11 @@
     "checkJs": true,
     "moduleDetection": "force"
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
+  /* Tests are excluded on purpose. This config describes code that runs in a
+     browser, and the architecture tests deliberately reach for node:fs to walk
+     the source tree. Keeping node's types out of here is what stops app code
+     quietly importing something that cannot run in a browser. Tests are checked
+     by tsconfig.test.json instead. */
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
+  "exclude": ["src/**/*.test.ts"]
 }

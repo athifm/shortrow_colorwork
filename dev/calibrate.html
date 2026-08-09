@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calibration workbench — not part of the app</title>
+  </head>
+  <body>
+    <!--
+      Ours, not the user's. See PLAN.md §3.6.
+
+      This page is excluded from the production build for a reason that needs no
+      configuration: Vite builds `index.html` and whatever it imports, and
+      nothing the app imports ever reaches here. A test in
+      src/architecture.test.ts checks that stays true.
+
+      Reachable while developing at http://localhost:5173/dev/calibrate.html
+    -->
+    <div id="workbench"></div>
+    <script type="module" src="/src/dev/calibrate/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,58 @@
+# Builds the app and publishes it to GitHub Pages on every push to main.
+#
+# The tests run before the build, and a failure stops the deploy. That is the
+# point of running them here rather than only on a laptop: what is published is
+# never something whose tests were failing.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets us republish without pushing, from the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# If two pushes land close together, let the newer one win rather than queueing
+# a deploy of code that is already out of date.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # `ci` rather than `install`: installs exactly what package-lock.json says,
+      # so the published build matches what was tested locally.
+      - run: npm ci
+
+      - run: npm run check
+
+      - run: npm test
+
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
