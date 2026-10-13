@@ -235,6 +235,59 @@ export const flatnessThreshold = relation<Record<string, never>, number>({
 });
 
 /**
+ * How hard the yarn in a pass pulls neighbouring stitches level, compared with
+ * the spring that keeps a column's rows one row apart.
+ *
+ * This single ratio decides how far garter ridges bend around a motif — the
+ * thing every photo in the textbook shows and the straight-stacked drawing
+ * can't. High: passes stay nearly level and columns squash and stretch to let
+ * them. Low: columns keep their rows evenly spaced and the passes bend instead.
+ * Real fabric is somewhere between, and only comparison with real fabric says
+ * where.
+ *
+ * Started at 1 (equal pulls). Compared side by side with the textbook's swatch
+ * photos, 1 made leaves and fish too thin and stems too straight; 0.3 matched
+ * both Harvest and Shoal far better — fat, pointed motifs, stems waving round
+ * them. Judged by eye between 0.3, 1 and 3, so read it as "somewhere around a
+ * third", not as a measurement.
+ */
+export const yarnPull = relation<Record<string, never>, number>({
+  id: "yarnPull",
+  describes: "Pull levelling stitches within a pass, relative to a column's row spacing",
+  category: "ours",
+  confidence: "documented",
+  source:
+    "Fitted by eye against the book's Harvest and Shoal swatch photos (research/observations.md: book-harvest, book-shoal), 2026-10-11.",
+  since: "2026-10-11",
+  settledBy:
+    "A finer fit against more book photos, then the M1 test stripe: knit it, photograph it, and compare the same way.",
+  compute() {
+    return 0.3;
+  },
+});
+
+/**
+ * How stiff a German double stitch is, as a fraction of an ordinary row.
+ *
+ * The turning stitch is one stitch stretched to fill two rows, so it gives more
+ * easily than two ordinary stitches stacked. This is where the tapered stripe
+ * ends in the textbook's photos most likely come from. Half is a guess.
+ */
+export const doubleStitchStiffness = relation<Record<string, never>, number>({
+  id: "doubleStitchStiffness",
+  describes: "Stiffness of a German double stitch, as a fraction of an ordinary row",
+  category: "ours",
+  confidence: "invented",
+  source: "A guess: half as stiff as an ordinary row. Not yet fitted.",
+  since: "2026-10-11",
+  settledBy:
+    "Compare stripe ends in the book's photos (Short and Alternating Stripes taper visibly), then measure on the M1 test stripe.",
+  compute() {
+    return 0.5;
+  },
+});
+
+/**
  * Everything above, in one list.
  *
  * The workbench renders this, and the tests walk it — so a relation added
@@ -247,4 +300,6 @@ export const MODEL: readonly Relation<never, unknown>[] = Object.freeze([
   steepestJoinStep,
   edgeStitchesPerJoinRow,
   flatnessThreshold,
+  yarnPull,
+  doubleStitchStiffness,
 ] as unknown as Relation<never, unknown>[]);

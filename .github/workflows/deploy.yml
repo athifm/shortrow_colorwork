@@ -43,6 +43,20 @@ jobs:
 
       - run: npm run build
 
+      # research/ holds a book's patterns (book-presets.json) and photos
+      # (sources/), for local use only. The app only reaches for them under
+      # `npm run dev`; if a production build ever points at either, something
+      # has gone wrong, and nothing gets published. (Citations of our own notes,
+      # like "research/observations.md" in model/physical, are fine to ship —
+      # they name a file, they don't contain anything from the book.)
+      - name: Check no private research material is in the build
+        run: |
+          if grep -rqE "book-presets|research/sources" dist; then
+            echo "The build points at private research material — refusing to publish."
+            grep -rlE "book-presets|research/sources" dist
+            exit 1
+          fi
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

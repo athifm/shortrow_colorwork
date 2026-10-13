@@ -14,7 +14,9 @@ Nothing has been coded yet. This file is the agreed starting point.
 | Question | Answer |
 |---|---|
 | Audience | **Other knitters, publicly** — strangers arrive from a link and use it without us there |
-| Technique | **Sculptural wedge-region short rows** — colour areas built as short-row wedges, unequal row counts per column, so the fabric flares and curves |
+| Technique | **Balanced short-row colorwork in garter** — every stitch ends up with the same number of rows; motifs come from *when* and *in which yarn* each part of a row is knitted. Ridges wave locally, but the overall depth is even. Corrected 2026-10-10 by the textbook (§2.5); this replaced "sculptural, unequal rows" |
+| Later technique | Truly flaring pieces (unequal rows on purpose) — an optional mode, after balanced works |
+| Turn technique | **German short rows** by default — what the textbook uses |
 | Shape vs. picture | **Both modes**, chosen per project: shape-constrained, and image-driven |
 | Technology | **Svelte 5 + Vite + TypeScript** |
 | The model | **Ours to work out, never the user's** — §2.4. They get parameters and options; we get the physics |
@@ -67,31 +69,46 @@ non-square cells.
 
 Call a column of stitches stacked on each other a **wale**. If wale `j` has been
 worked over `R(j)` rows, its physical length is `R(j) · h`. Neighbouring wales
-are sewn to each other along their whole length by construction. A strip of
-ribbons of unequal length, joined edge to edge, cannot stay a rectangle — it
-fans. **That flare is the entire point of sculptural short-row work, and it is
-also the thing that distorts your picture.**
+are joined along their whole length, so if their lengths differed, the fabric
+would have to fan out or pucker.
 
-### 2.2 Wedges as darts
+**In balanced short-row colorwork they don't differ.** That's the core rule the
+textbook teaches (§2.5): by the end of every repeat, every wale has been worked
+the same number of times. Different parts of a row are knitted at different
+times and in different yarns, and *that* is what draws the picture. The fabric
+stays even in depth; what moves is the garter ridges, which bend into waves near
+turns.
 
-The tractable way to think about the geometry: each short-row pair worked over a
-span of `s` stitches inserts a wedge into the fabric of angle roughly
+### 2.2 The core model: height and colour per stitch
 
-```
-θ ≈ 2h / (s · w)      radians
-```
+Everything in balanced short-row colorwork can be tracked with two things per
+stitch:
 
-at that location. The finished shape is the accumulation of all those wedges.
+- its **height** — how many rows it has been worked so far, and
+- its **colour stack** — which yarn worked each of those rows, bottom to top.
 
-- Wedges **nested around a common apex** → the piece opens into a flat fan
-  (a circular sector). This is the classic triangular or half-circle shawl, and
-  it lies flat.
-- Wedges **spread evenly across the width** → curvature accumulates away from a
-  point and the fabric cups or ruffles. It will not lie flat.
+A pattern is an ordered list of **passes**. Each pass is one yarn knitting one
+unbroken run of stitches in one direction, ending at a turn or an edge. Every
+stitch in the run gets one more row of height, in that pass's yarn.
 
-That distinction is a first-class thing the app must compute and warn about.
-"This design will not lie flat" is one of the most useful sentences the app can
-say, and it is cheap to derive once the geometry engine exists.
+- **Balanced** means every stitch has the same height at the end of each repeat.
+- **The picture** is each wale's colour stack, read bottom to top.
+- **The chart** in a short-row pattern is just this list of passes, drawn in
+  knitting order — what §2.1 calls construction space. The textbook draws its
+  charts exactly this way.
+
+This is the model the first code builds (`methods/shortrow/passes`), checked
+against the textbook's own patterns before anything else is built on it.
+
+#### Later: flaring mode
+
+The original plan aimed at deliberately *unbalanced* short rows, where the
+fabric fans out. That is now an optional later mode. The geometry notes for it
+are kept here rather than deleted. Each short-row pair over `s` stitches inserts
+a wedge of angle roughly `θ ≈ 2h / (s · w)`:
+
+- wedges nested around a common apex open into a flat fan;
+- wedges spread across the width make the fabric cup or ruffle.
 
 ### 2.3 What makes a plan knittable — the rules
 
@@ -105,15 +122,23 @@ hard-code, and they belong to `methods/shortrow/topology`.
    been worked (or cast on).
 3. **Needle order.** Stitches never reorder. From the current position you may
    work forward, or turn and work back.
-4. **Every turn needs a technique.** German short rows, wrap-and-turn, or shadow
-   wraps. The return pass has to close the gap ("work the double stitch together
-   as one"). Which technique is a user choice; *that there must be one* is a rule.
-5. **One attachment per region.** A contiguous single-colour area is one join of
-   yarn: two ends to weave in. **Number of regions is a headline quality metric.**
-   A design with forty regions has eighty ends and nobody will knit it.
-6. **RS / WS alternate.** Garter is the usual ground for sculptural short-row
-   work — it lies flat and reads the same on both sides — so garter is the
-   default, with stockinette available.
+4. **Every turn needs a technique.** German short rows by default; wrap-and-turn
+   and shadow wraps are alternatives. The return pass closes the gap ("work the
+   double stitch together as one"). The textbook draws a turn as `∞` in the
+   chart cell just past the last stitch of the pass.
+5. **Yarns wait where they stopped.** Yarns are not carried across the back. A
+   pass in a yarn can only start where that yarn's last pass ended. This is why
+   the textbook's catch-up rows happen when and where they do.
+6. **Balance by the end of every repeat.** Every stitch must reach the same
+   height. A pattern that misses a catch-up row is wrong, not just ugly: the
+   fabric pulls up and stitches stretch.
+7. **Ends to weave = yarn attachments, not regions.** A yarn that waits at an
+   edge can make many motifs without being cut — the textbook's stripe patterns
+   use one B yarn for every stripe. **Number of attachments is a headline quality
+   metric.** A design that needs a fresh join per region has two ends per region,
+   and nobody will knit it.
+8. **RS / WS alternate.** Garter is the ground — it lies flat and reads the same
+   on both sides.
 
 ### 2.4 What we are guessing, and who is allowed to see it
 
@@ -145,11 +170,12 @@ little we know:
 
 | Quantity | Current hypothesis | Confidence | What settles it |
 |---|---|---|---|
-| Flare per short-row pair | `θ ≈ 2h/(s·w)` | **the form itself is a guess** | knit one wedge, measure its angle |
-| Row gauge near a turn | same as elsewhere | unlikely to be exactly true | the same wedge — compare its two edges |
-| Steepest join before it gapes | — | no hypothesis yet | a two-colour test piece |
-| Edge stitches consumed by a join | 1 per row | plausible, untested | the same two-colour piece |
-| Flat-or-not threshold | residual energy | form untested | predictions checked against real pieces |
+| **Height of a German double stitch** | counts as a full row for both passes it sits between | consistent with the three textbook stripe patterns, which balance under it | measure a test stripe: do the turn columns sit level? |
+| **How far ridges bend near turns** | the fabric relaxes until the yarn in each pass and the spacing of each column balance (`mesh/relax.ts`); one ratio, `yarnPull` ≈ 0.3, decides how far | **documented**: fitted by eye to the book's Harvest and Shoal photos (2026-10-11) — motifs come out pointed and curved both ways, stems wave round them | a finer fit against more book photos, then the M1 test stripe photographed and compared the same way |
+| Stiffness of a German double stitch | half an ordinary row | invented; should explain the tapered stripe ends in the book's photos | compare stripe ends against Short / Alternating Stripes photos |
+| Steepest staircase before a turn line gapes | — | the textbook uses steps of 1–4 stitches per pass | a test piece with increasing steps |
+| Flare per short-row pair | `θ ≈ 2h/(s·w)` | **flaring mode only** (§2.2); the form itself is a guess | knit one wedge, measure its angle |
+| Flat-or-not threshold | residual energy | **flaring mode only**; form untested | predictions checked against real pieces |
 
 This table has two ways to earn confidence, not one. **Measured** — we knit a
 test piece ourselves and read it under our own gauge — sits above
@@ -227,7 +253,7 @@ whatever patterns and tutorials we can get hold of, in two passes, always in
 that order:
 
 **Pass A — does a real example break the model?** Checked against §2.3's rules
-and §2.2's wedge-and-flare picture, one at a time. A genuine disagreement here
+and §2.2's model, one at a time. A genuine disagreement here
 outweighs any number Pass B could extract, because it's the one outcome that
 would actually change the plan rather than fill in a table.
 
@@ -248,17 +274,62 @@ Confirmed, extracted numbers move the relevant row in §2.4's table from
 testing an informed guess instead of discovering one from nothing, and may
 shrink accordingly. `research/` is deliberately outside git — see §7.
 
-### 2.6 Joining wedges — currently the weakest part
+#### What the first pass found (2026-10-10)
 
-When a new wedge butts against a finished one, the row-end stitch is worked
-together with the neighbour's edge stitch. I am fairly confident of the shape of
-this and not at all confident of the details: how many edge stitches it eats, how
-steep the boundary can get before it gapes, whether it needs picking up instead
-past some angle. Flagged here because it is the assumption most likely to be
-wrong, and it is why the two-colour test piece (§5, M2) comes before any region
-planner exists.
+Source: nine photos of a short-row colorwork stitch dictionary (title to come).
+Notes in `research/observations.md`.
+
+- **It contradicted the plan's core.** The book's central rule is *balance*:
+  every stitch gets the same number of rows. Unbalanced fabric is the mistake.
+  The plan's "sculptural, unequal rows" target was wrong for this technique, and
+  §1, §2.1–2.3 have been rewritten around balance. Flaring is now a later mode.
+- **The book's charts are construction-space charts** — one line per pass, in
+  knitting order. That matches §2.2's model and §3.3's needle view.
+- **Balance checked by hand** on three stripe patterns: every stitch gets 6, 8
+  and 16 rows per repeat respectively. The catch-up row length is
+  `total stitches − previous motif stripe`.
+- **Two rules were missing** and are now in §2.3: yarns wait where they stopped,
+  and ends to weave count yarn attachments, not regions.
+- **One written row can hold many passes** — a zigzag of shrinking turns in one
+  yarn (the Harvest pattern builds a leaf this way).
+
+Second batch, same day (Harvest and Shoal, upright photos):
+
+- **The forward simulator reproduces all five patterns read so far**: every
+  stitch at equal height (6, 8, 16, 28 and 22 rows per repeat), and every pass
+  starting exactly where its yarn was waiting. That includes Harvest's 74 passes
+  and Shoal's 60. The turning-stitch counting rule is confirmed directly by a
+  chart label (Harvest row 10, "38sts").
+- **Two yarns can share a row.** In Shoal, A knits a few stitches and *stops
+  mid-row*; B takes over, zigzags, comes back, and A finishes the row. A colour
+  boundary within a row can be a handoff, not only a turn.
+- **One colour can need several strands.** Shoal's two motifs start in different
+  columns, so each keeps its own strand of B waiting in place. Strands, not
+  colours, are what "yarns wait where they stopped" is about — and each strand
+  is an attachment, with two ends to weave in (§2.3 rule 7).
+
+### 2.6 Joining colours — now much simpler than feared
+
+This section used to say joining wedges was the weakest part of the model: a new
+wedge's row-end stitch worked together with a finished neighbour's edge stitch,
+with no idea how many edge stitches that eats.
+
+The textbook removes most of that worry. In balanced short-row colorwork, the
+boundary between two colours *is* a turn. One yarn works up to a point and turns
+— a German short row — and a later pass in the other yarn knits across the
+double stitch as one. No stitches are eaten, nothing is picked up.
+
+What's left uncertain is physical, not combinatorial: how steep a staircase of
+turns can get before it gapes, and how far the ridges bend near turns (§2.4).
 
 ### 2.7 The two project modes
+
+> **Written for the old flaring model (before 2026-10-10).** Both modes still
+> stand — a shape chosen first, or a picture driving the design — but the
+> geometry below assumed unequal rows. With balanced fabric, the "shape" is
+> mostly the outline of the piece, and the hard part moves to choosing passes so
+> each wale's colour stack matches the picture. This section gets rewritten once
+> the forward simulator works and the first test stripe has been measured.
 
 These map cleanly onto two different geometry engines, which is why supporting
 both is less than twice the work.
@@ -280,18 +351,27 @@ here needs the general solver (§3.4), not the analytic one.
 
 ### 2.8 The distortion problem — the most important thing on screen
 
-You chose sculptural. That means the fabric flares, which means **your picture
-will be stretched by the flare**, and the amount depends on where in the piece it
-sits. If the app only ever shows the picture on a neat rectangular chart, it is
-lying to you and you will find out after fifty hours of knitting.
+Balanced fabric doesn't flare, but it doesn't stay a neat grid either. Every
+photo in the textbook shows garter ridges bending into waves near turns —
+stripe ends taper, backgrounds ripple around motifs. So **the picture will still
+be distorted**, locally rather than globally, and the amount depends on where the
+turns are. If the app only ever shows the picture on a neat rectangular chart,
+it is lying to you, and you will find out after fifty hours of knitting.
 
-So: the preview always renders the image **as warped onto the actual fabric
-geometry**, side by side with the original. Everything else in the UI is
-negotiable; this is not.
+So the preview always renders the design **with the ridges bent the way the
+fabric will bend them**, side by side with the original. How far they bend is
+the top unknown in §2.4, and the first thing the M1 test stripe measures.
+Everything else in the UI is negotiable; this is not.
 
 ---
 
 ## 3. Architecture
+
+> **Note (2026-10-10):** the geometry parts of this section — wedge schedules,
+> the mesh, analytic layout, the relaxation solver — were designed for flaring
+> fabric. The layering, the pipeline and the conventions still stand. The
+> geometry gets redesigned around balanced fabric once the forward simulator
+> (§2.2) is working and the first test stripe has been measured.
 
 Same instinct as `planned_pooling` — strict layers, each future feature landing
 in exactly one of them — but with the boundaries made explicit in types, and with
@@ -530,9 +610,10 @@ the geometry has been checked against something real.
 | | Milestone | Ends with |
 |---|---|---|
 | **M0** | Scaffold: Vite, Svelte, TS, Vitest, Pages workflow, `model/physical` | A deployed page, and every guess named in one file with its category and confidence |
-| *before M1* | Research pass (§2.5) over whatever patterns and tutorials we have | §2.4's table has as many rows moved to `documented` as the material allows |
-| **M1** | Single-wedge predictor, its printed instructions, and the workbench (§3.6) | **We knit one wedge.** Cast on, turn every other row, bind off — an evening. Confirms (or corrects) a `documented` hypothesis rather than discovering one blind |
-| **M2** | Two wedges in two colours, joined | **We knit the join.** Tests §2.6, the assumption most likely to be wrong, while being wrong is still cheap |
+| *before M1* | Research pass (§2.5) over whatever patterns and tutorials we have. **First pass done 2026-10-10** | §2.4's table has as many rows moved to `documented` as the material allows |
+| *before M1* | **Forward simulator** — `methods/shortrow/passes`: a list of passes in, each stitch's height and colour stack out, with balance and rule checks (§2.2) | Reproduces the textbook's stripe patterns exactly: balanced, with the right colours in every column |
+| **M1** | One two-colour test stripe, its printed instructions, and the workbench (§3.6) | **We knit one stripe.** An evening. Measures how far ridges bend near a turn and whether the double stitch sits level — the two top unknowns in §2.4 |
+| **M2** | A staircase of turns in two colours | **We knit a diagonal.** Tests how steep a staircase can get before it gapes (§2.6) |
 | **M3** | `shape/` + `mesh/` + analytic layout + fabric view + needle view | A whole shawl's geometry on screen, in both spaces, on a model that has now met yarn. **First end-user-facing work** |
 | **M4** | `image/` + `color/` + `palette/`, sampling onto the mesh | Drop in a picture, see it warped onto the shawl in yarn colours — first *"oh"* moment. Decide here whether end users get the needle view |
 | **M5** | `methods/shortrow/`: decomposition, dependency order, cycle breaking, turn scheduling, validation | A full plan: regions numbered, turns marked, honest warnings |
@@ -562,20 +643,21 @@ gets written at M11 when there is a second case to generalise from.
 
 ## 6. Risks, ranked
 
-1. **The model in §2.4 is wrong in kind, not merely in its numbers.** The most
-   likely single failure. `θ ≈ 2h/(s·w)` is a guess at the *shape* of the
-   relation, and a knitted wedge may show it depends on things it does not
-   currently mention. Not mitigated by thinking harder — this cannot be settled
-   by reading, only by knitting. Mitigated by *structure*: relations expressed as
-   replaceable functions, categories stored as data so a quantity can move from
-   fixed to user-supplied without a refactor, the planner forbidden from holding
-   constants, and M1/M2 testing each guess against yarn before anything is built
-   on top of it.
+1. **The model is wrong in kind, not merely in its numbers.** This already
+   happened once. The first textbook pass showed the plan aimed at the wrong
+   technique entirely: flaring instead of balanced (§2.5). It was caught by
+   reading before any geometry was built, which is what the research pass is
+   for. What's left: the physical relations in §2.4 (double-stitch height, ridge
+   bend) may depend on things they don't currently mention. Mitigated by
+   *structure*: relations as replaceable functions, categories stored as data,
+   the planner forbidden from holding constants, and early test pieces measuring
+   each guess before anything is built on top.
 2. **Image-driven mode may not be fully automatable.** Planned as assisted rather
    than automatic, and scheduled late so the app is already valuable without it.
-3. **Designs that will not lie flat.** Inherent to sculptural work. Handled by
-   detecting it and saying so, not by preventing it — sometimes cupping is what
-   you wanted.
+3. **Unbalanced designs.** In balanced mode this is a planner error, never a
+   design choice: the forward simulator flags any pattern that leaves stitches
+   at different heights. In the later flaring mode, uneven height becomes
+   deliberate, and the warning becomes "this will not lie flat".
 4. **Gauge near turns differs from swatch gauge.** Measured at M1, and absorbed
    into the model rather than into the user's lap.
 5. **Region count explodes on photographic input.** Mitigated by no dithering,
@@ -646,12 +728,12 @@ line saying they are responsible for what they upload, and no more than that.
 
 ## 9. Immediate next steps
 
-1. **Me**: M0 — test runner, publishing workflow, `model/physical` with every
-   guess of §2.4 written down with its category and confidence, and the dev
-   directory proven to stay out of the production build.
-2. **Me**: M1 — the single-wedge predictor, its printed instructions, and the
-   workbench that takes the measurements back.
-3. **You**: knit that wedge. It is the first real data this project will have,
-   and everything in §2.4 is waiting on it.
-4. **You**, whenever convenient: name the shapes you want in the library at M3,
-   in priority order.
+1. **Done**: M0 — test runner, publishing workflow, `model/physical`, dev code
+   kept out of the production build.
+2. **Done**: first research pass over the textbook (§2.5).
+3. **Me**: the forward simulator (§2.2), checked against the textbook's stripe
+   patterns.
+4. **You**: upright photos of the Harvest, diamonds and peaks charts, and the
+   book's title and author.
+5. **Me, then you**: M1 — the test stripe. I write its instructions; you knit it
+   and measure the ridge bend.
