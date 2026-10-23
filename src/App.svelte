@@ -15,6 +15,7 @@
   import { PRESETS, type Preset } from "./presets";
   import NeedleChart from "./views/NeedleChart.svelte";
   import FabricView from "./views/FabricView.svelte";
+  import DesignPanel from "./views/DesignPanel.svelte";
   import { settle, describeShape } from "./mesh/settle";
   import {
     yarnPull,
@@ -362,6 +363,16 @@
 
 <main>
   <section class="controls" aria-label="Pattern">
+    <DesignPanel
+      onmake={(rows, n) => {
+        text = rows;
+        stitches = n;
+        loaded = null;
+        hovered = null;
+        hoveredExact = null;
+      }}
+    />
+
     <label class="field">
       <span>Load an example</span>
       <select onchange={loadPreset}>

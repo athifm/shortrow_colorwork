@@ -886,12 +886,46 @@ A "Design" panel. Its output is written rows, placed straight into the
 written-rows box, so the chart, fabric, verdict and photo comparison all work on
 generated patterns with nothing extra.
 
+- **Done 2026-10-23** (`views/DesignPanel.svelte`, at the top of the page, for
+  everyone). Lens or stripe; stitches, start, first leg, steps and step; rows
+  below and above; catch-ups before or after, edge, order and stagger. It says
+  whether the design can be knitted as you change it — with the reason when it
+  can't — before "Make pattern" writes it into the box. Starts as Shoal's fish.
+
+### After D: from a drawing (agreed 2026-10-23)
+
+The goal: **draw on a canvas → rasterize to a grid of stitches and rows →
+construct the short rows → write the pattern → show how it will really look.**
+Each stage can fail, and failures come in three kinds:
+
+- **fine as drawn** — it knits as is;
+- **soft** — a small automatic adjustment makes it knittable, changing the look
+  a little; the app makes it and *shows* what changed;
+- **hard** — it can't be knitted; the app highlights *where* and says *why*, and
+  you redraw.
+
+How the built pieces fit: the writer (A) is the last step; the reader, counter,
+shape drawing, rule checker and verdict judge every result; catch-ups (B) are
+the background half of construction; one-motif design (C) is the first recipe
+in a library of shapes we know how to knit, and a test case for the general
+constructor.
+
+| Step | What |
+|---|---|
+| **E** | **The limitations list, and probe grids.** Draft the hard and soft limits from what's proven, and a set of small test grids — a diagonal, a circle, two touching blobs, a vertical bar, a ring, a checkerboard, a single dot — each aimed at one question. You mark each limit: fine / adjust automatically / adjust and ask / redraw. This list is the spec for F. |
+| **F** | **Construct from any grid** — the real inverse. Regions of colour → passes, strands, catch-ups, following E's rules and reporting what it adjusted or refused. Check: given the grid a Stage C design produces, it finds an equally good pattern. |
+| **G** | **Rasterize** — canvas pixels to a stitch grid at the knitter's gauge (two rows to a stitch's width in garter), with clean-up of specks and ragged edges. |
+| **H** | **Draw on a canvas** — the end goal. |
+
+A first entry for the list, already known: you draw in *picture* space, but
+construction works in *stitch-and-row* space, and knitted ridges bend between
+the two — so the knitted result won't look exactly like the drawing. Soft; the
+relaxed preview shows it.
+
 ### Later (planned separately)
 
-- Several motifs at once, and more shapes: a leaf with a stem, a wedge.
-- **Painting a grid** — the second way of saying what you want.
-- Finally, **from a picture**: find the shapes in it, fit motifs to them,
-  generate.
+- Several motifs at once, and more shapes: a leaf with a stem, a wedge — as
+  recipes F can use.
 
 ### Also outstanding
 
