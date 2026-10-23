@@ -864,6 +864,21 @@ the whole pattern:
 - **Check:** the reader, counter and shape engine must say "lies flat — a
   rectangle"; the turn rule must hold; and the drawing must show the motif asked
   for.
+- **Done 2026-10-23** (`methods/shortrow/motif.ts`), not yet on the page (that
+  is Stage D). The motif's zigzag is Shoal's construction: turns in two
+  staircases going in, then two coming out, offset by a stitch so no turn lands
+  on another — which is why a step must be at least 2. No steps makes a stripe.
+  What it reproduces from a few numbers:
+  - **the book's Short Stripes, identical row for row** (25 sts, start 1, width
+    24, no steps, catch-up after from the left);
+  - **Shoal's fish rows 7–8, identical to the book's** (start 5, width 14, 3
+    steps of 2);
+  - our own Stripe and Lens examples, word for word.
+  Every design is checked before it's returned: it must read back, lie flat as
+  a rectangle, repeat cleanly with one strand of each yarn, and keep rules 1–3.
+  Requests that can't be knitted are refused with the reason: one-stitch steps,
+  a motif wider than the fabric, more steps than the width allows, an even
+  number of base rows.
 
 ### Stage D — On the page
 
