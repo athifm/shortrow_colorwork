@@ -33,6 +33,14 @@ export interface RelaxOptions {
   /** For each pass, whether it ends in a turn. Its last stitch is then a double
    *  stitch, joined to the return pass's stitch above it. */
   endsInTurn: readonly boolean[];
+  /** How far apart each column's rows sit, one number per column. Left out, it
+   *  is 1 everywhere — upright columns, as in balanced fabric. Inside a fan it
+   *  varies: heights are then measured as angle round the fan (scaled so the
+   *  average spacing is about 1), and an outer column, being longer, spends
+   *  less angle per row than an inner one (mesh/settle.ts). Pulls are
+   *  weighted so they stay physical distances: a gap of `s` in angle across a
+   *  column whose spacing is `s` is one real row. */
+  spacing?: readonly number[];
 }
 
 export interface Relaxed {
@@ -80,11 +88,13 @@ export function relax(fabric: Fabric, passes: readonly Pass[], options: RelaxOpt
     count += h;
   }
   const id = (column: number, row: number) => start[column] + row;
+  const s = (column: number) => options.spacing?.[column] ?? 1;
 
-  // Start from the straight drawing: row r of every column at height r + 1.
+  // Start from the straight drawing: row r of every column at height r + 1
+  // (in that column's spacing).
   const y = new Float64Array(count);
   heights.forEach((h, i) => {
-    for (let r = 0; r < h; r++) y[id(i, r)] = r + 1;
+    for (let r = 0; r < h; r++) y[id(i, r)] = (r + 1) * s(i);
   });
 
   const links: Link[][] = Array.from({ length: count }, () => []);
@@ -120,7 +130,8 @@ export function relax(fabric: Fabric, passes: readonly Pass[], options: RelaxOpt
   };
   heights.forEach((h, i) => {
     for (let r = 0; r + 1 < h; r++) {
-      link(id(i, r + 1), id(i, r), 1, isDoubleStitch(i, r) ? options.doubleStitch : 1);
+      const stiffness = isDoubleStitch(i, r) ? options.doubleStitch : 1;
+      link(id(i, r + 1), id(i, r), s(i), stiffness / (s(i) * s(i)));
     }
   });
 
@@ -131,7 +142,7 @@ export function relax(fabric: Fabric, passes: readonly Pass[], options: RelaxOpt
       const a = cols[k];
       const b = cols[k + 1];
       if (b !== a + 1) continue;
-      link(id(a, columnsOfPass.get(a)!), id(b, columnsOfPass.get(b)!), 0, options.yarnPull);
+      link(id(a, columnsOfPass.get(a)!), id(b, columnsOfPass.get(b)!), 0, options.yarnPull / (s(a) * s(b)));
     }
   }
 
@@ -141,8 +152,8 @@ export function relax(fabric: Fabric, passes: readonly Pass[], options: RelaxOpt
   const tallest = Math.max(0, ...heights);
   heights.forEach((h, i) => {
     if (h === 0) return;
-    anchor[id(i, 0)] = 1;
-    anchorWeight[id(i, 0)] = EDGE_HOLD;
+    anchor[id(i, 0)] = s(i);
+    anchorWeight[id(i, 0)] = EDGE_HOLD / (s(i) * s(i));
     if (fabric.balanced) {
       const top = id(i, h - 1);
       // A column of one row is anchored at both ends; average the two.
@@ -179,8 +190,8 @@ export function relax(fabric: Fabric, passes: readonly Pass[], options: RelaxOpt
   let height = 0;
   heights.forEach((h, i) => {
     const c = Array.from({ length: h }, (_, r) => y[id(i, r)]);
-    const lo = c.map((v, r) => (r === 0 ? v - 1 / 2 : (c[r - 1] + v) / 2));
-    const hi = c.map((v, r) => (r === h - 1 ? v + 1 / 2 : (v + c[r + 1]) / 2));
+    const lo = c.map((v, r) => (r === 0 ? v - s(i) / 2 : (c[r - 1] + v) / 2));
+    const hi = c.map((v, r) => (r === h - 1 ? v + s(i) / 2 : (v + c[r + 1]) / 2));
     centres.push(c);
     lower.push(lo);
     upper.push(hi);

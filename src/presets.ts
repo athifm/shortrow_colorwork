@@ -65,4 +65,35 @@ Row 17: (A) K3, SR
 Row 18: (A) Knit to end
 Rows 19 to 20: (A) Knit all sts`,
   },
+  {
+    name: "Wedge",
+    about:
+      "Deliberately unbalanced. B works short rows from the left edge, each one two stitches shorter, with no catch-up. The left edge grows longer than the right and the piece fans out like a wedge shawl.",
+    stitches: 12,
+    text: `Row 1 (WS): (A) Knit all sts
+Row 2 (RS): (A) Knit all sts
+Row 3 (WS): (B) K10, SR
+Row 4: (B) Knit to end
+Row 5: (B) K8, SR
+Row 6: (B) Knit to end
+Row 7: (B) K6, SR
+Row 8: (B) Knit to end
+Row 9: (B) K4, SR
+Row 10: (B) Knit to end
+Row 11: (B) K2, SR
+Row 12: (B) Knit to end`,
+  },
+  {
+    name: "Bump",
+    about:
+      "Short rows in B over the middle four stitches only, with both sides caught up to each other but not to the middle. The middle grows longer than both edges — no flat shape fits, so the next full row would have to stretch over it.",
+    stitches: 12,
+    text: `Row 1 (WS): (A) Knit all sts
+Row 2 (RS): (A) K4, (B) K4, SR, K4, SR, K4, SR, K4, SR, K4, SR
+Row 3: (B) K4, (A) Knit to end
+Row 4: (A) Knit all sts
+Row 5: (A) K4, SR
+Row 6: (A) Knit to end
+Rows 7 to 8: (A) Knit all sts`,
+  },
 ];

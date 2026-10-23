@@ -212,25 +212,70 @@ export const edgeStitchesPerJoinRow = relation<{ technique: TurnTechnique }, num
 });
 
 /**
- * Above this residual energy, after the mesh relaxation has converged, the piece
- * will not lie flat and the app should say so.
+ * How far a row has to stretch, as a fraction of its own length, before the
+ * piece counts as not lying flat.
  *
- * Both the threshold and the idea that residual energy is the right measure of
- * flatness are untested. The number is meaningless until the relaxation solver
- * exists at M10 and has been compared against pieces that did and did not lie
- * flat in reality.
+ * The measure changed on 2026-10-11, from "leftover relaxation energy" to "row
+ * stretch". The reasoning: a fan of short rows lies flat with every row at its
+ * natural length, but short rows bunched in the middle force the next full row
+ * to cover a longer path with the same stitches. The only flat answer is to
+ * stretch it — the stretched stitches the textbook warns against. In real
+ * yarn, the piece pops up out of the plane instead. So stretch is the symptom
+ * worth reporting. Where it becomes "won't lie flat" rather than "a bit taut"
+ * is a guess.
  */
 export const flatnessThreshold = relation<Record<string, never>, number>({
   id: "flatnessThreshold",
-  describes: "Residual relaxation energy above which a piece will not lie flat",
+  describes: "Row stretch, as a fraction, above which a piece won't lie flat",
   category: "ours",
   confidence: "invented",
-  source: "No basis. The measure itself is unverified, not merely the threshold.",
-  since: "2026-08-09",
+  source: "A guess: 10% stretch. Garter gives a little before it buckles.",
+  since: "2026-10-11",
   settledBy:
-    "M10: relax several pieces whose real behaviour is known, and find where the boundary actually falls.",
+    "Knit the lab's Bump example and find how big a bump still lies flat; compare against the drawn stretch.",
   compute() {
-    return 0.05;
+    return 0.1;
+  },
+});
+
+/**
+ * A stitch's width compared with a row's height.
+ *
+ * Garter rows are short: roughly two rows to each stitch's width. This really
+ * belongs to the knitter's own gauge, and becomes a parameter once there's a
+ * gauge input; until then, the garter figure stands in.
+ */
+export const stitchAspect = relation<Record<string, never>, number>({
+  id: "stitchAspect",
+  describes: "A stitch's width, in row heights",
+  category: "ours",
+  confidence: "derived",
+  source: "Typical garter gauge: about twice as many rows as stitches per 10 cm.",
+  since: "2026-10-11",
+  settledBy: "The knitter's own gauge, once the app asks for it.",
+  compute() {
+    return 2;
+  },
+});
+
+/**
+ * The narrowest unevenness, in stitches, that the fabric can't simply absorb.
+ *
+ * Every staircase of short rows is uneven at the scale of a stitch or two —
+ * that's how a diagonal is made — and the double stitches soak it up; the
+ * fabric lies flat regardless. Only a bump or dip spread over more stitches
+ * than this forces the row above it to stretch. Four is a guess.
+ */
+export const smallestBump = relation<Record<string, never>, number>({
+  id: "smallestBump",
+  describes: "Narrowest bump or dip, in stitches, that forces a row to stretch",
+  category: "ours",
+  confidence: "invented",
+  source: "A guess: four stitches. Staircases of 1–2 stitch steps are routine and lie flat.",
+  since: "2026-10-13",
+  settledBy: "Knit bumps of a few widths and see which ones still lie flat.",
+  compute() {
+    return 4;
   },
 });
 
@@ -302,4 +347,6 @@ export const MODEL: readonly Relation<never, unknown>[] = Object.freeze([
   flatnessThreshold,
   yarnPull,
   doubleStitchStiffness,
+  stitchAspect,
+  smallestBump,
 ] as unknown as Relation<never, unknown>[]);

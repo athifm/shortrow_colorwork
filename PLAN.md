@@ -15,7 +15,7 @@ Nothing has been coded yet. This file is the agreed starting point.
 |---|---|
 | Audience | **Other knitters, publicly** — strangers arrive from a link and use it without us there |
 | Technique | **Balanced short-row colorwork in garter** — every stitch ends up with the same number of rows; motifs come from *when* and *in which yarn* each part of a row is knitted. Ridges wave locally, but the overall depth is even. Corrected 2026-10-10 by the textbook (§2.5); this replaced "sculptural, unequal rows" |
-| Later technique | Truly flaring pieces (unequal rows on purpose) — an optional mode, after balanced works |
+| Balanced or not | **Both, in one model** (2026-10-13). Balance is a *result*, not a rule: every pattern makes a shape — a rectangle, a fan, or something that won't lie flat — and the app says which. Balanced came first only because the textbook teaches it. Replaces "flaring later" |
 | Turn technique | **German short rows** by default — what the textbook uses |
 | Shape vs. picture | **Both modes**, chosen per project: shape-constrained, and image-driven |
 | Technology | **Svelte 5 + Vite + TypeScript** |
@@ -100,15 +100,32 @@ stitch in the run gets one more row of height, in that pass's yarn.
 This is the model the first code builds (`methods/shortrow/passes`), checked
 against the textbook's own patterns before anything else is built on it.
 
-#### Later: flaring mode
+#### Balanced or not: what shape a pattern makes
 
-The original plan aimed at deliberately *unbalanced* short rows, where the
-fabric fans out. That is now an optional later mode. The geometry notes for it
-are kept here rather than deleted. Each short-row pair over `s` stitches inserts
-a wedge of angle roughly `θ ≈ 2h / (s · w)`:
+Balance is one possible result, not a rule. Short rows never add stitches, so
+every full row keeps its length. What unequal columns change is the rows'
+*direction*:
 
-- wedges nested around a common apex open into a flat fan;
-- wedges spread across the width make the fabric cup or ruffle.
+- **Every column the same length:** a rectangle, with ridges waving around
+  motifs.
+- **Columns longer on one side:** the full rows tilt apart on that side, like
+  ribs of a fan. The columns become arcs and the rows spokes. It still lies flat.
+  The opening angle is the difference in column length divided by the distance
+  between the columns — the old flare relation `θ ≈ 2h/(s·w)`, now confirmed by
+  the drawing.
+- **Columns longer in the middle:** no flat shape fits. The next full row has to
+  arch over the bump with the same stitches, so it stretches; real yarn pops up
+  instead, as in a short-row heel. This is the case worth warning about.
+
+`mesh/settle.ts` works out which. It fits a straight line through the column
+lengths: the slope gives the fan, and whatever the line can't explain is a bump
+or dip that forces a row to stretch. The local ridge waves come from
+`mesh/relax.ts`, run inside that shape. For balanced fabric the result is
+identical to before.
+
+An earlier attempt solved every stitch's position as one free net of springs.
+It didn't settle, took 13 s on Harvest, and made balanced fabric fan by up to
+23°. It was dropped.
 
 ### 2.3 What makes a plan knittable — the rules
 
@@ -129,9 +146,13 @@ hard-code, and they belong to `methods/shortrow/topology`.
 5. **Yarns wait where they stopped.** Yarns are not carried across the back. A
    pass in a yarn can only start where that yarn's last pass ended. This is why
    the textbook's catch-up rows happen when and where they do.
-6. **Balance by the end of every repeat.** Every stitch must reach the same
-   height. A pattern that misses a catch-up row is wrong, not just ugly: the
-   fabric pulls up and stitches stretch.
+6. **Balance is something you ask for, not a rule.** If the target is a
+   rectangle — the textbook's swatches — every stitch must reach the same height
+   by the end of each repeat, and a missed catch-up row is a mistake: the edge
+   pulls in. If the target is a wedge or a fan, unequal columns are the point.
+   What is always a problem is a shape that can't lie flat: a bump or dip that
+   forces a row to stretch. Picture → pattern (M5) will take a **target shape**
+   as input, and a rectangle is simply the target that yields balance.
 7. **Ends to weave = yarn attachments, not regions.** A yarn that waits at an
    edge can make many motifs without being cut — the textbook's stripe patterns
    use one B yarn for every stripe. **Number of attachments is a headline quality
@@ -174,8 +195,10 @@ little we know:
 | **How far ridges bend near turns** | the fabric relaxes until the yarn in each pass and the spacing of each column balance (`mesh/relax.ts`); one ratio, `yarnPull` ≈ 0.3, decides how far | **documented**: fitted by eye to the book's Harvest and Shoal photos (2026-10-11) — motifs come out pointed and curved both ways, stems wave round them | a finer fit against more book photos, then the M1 test stripe photographed and compared the same way |
 | Stiffness of a German double stitch | half an ordinary row | invented; should explain the tapered stripe ends in the book's photos | compare stripe ends against Short / Alternating Stripes photos |
 | Steepest staircase before a turn line gapes | — | the textbook uses steps of 1–4 stitches per pass | a test piece with increasing steps |
-| Flare per short-row pair | `θ ≈ 2h/(s·w)` | **flaring mode only** (§2.2); the form itself is a guess | knit one wedge, measure its angle |
-| Flat-or-not threshold | residual energy | **flaring mode only**; form untested | predictions checked against real pieces |
+| Flare per short-row pair | `θ ≈ 2h/(s·w)` | **derived**; the fan drawing reproduces it independently (Wedge example: 56° vs 52° predicted) | knit the Wedge example, measure its angle |
+| Won't-lie-flat threshold | a row stretched more than 10% | invented; the measure is now row stretch, not "residual energy" | knit the Bump example and bumps of other sizes; see which lie flat |
+| Smallest bump that matters | 4 stitches; narrower unevenness is absorbed by the double stitches | invented | bumps of a few widths, knitted |
+| Stitch shape | 2 rows to a stitch's width (garter) | derived from typical gauge | the knitter's own gauge, once the app asks for it |
 
 This table has two ways to earn confidence, not one. **Measured** — we knit a
 test piece ourselves and read it under our own gauge — sits above

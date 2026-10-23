@@ -12,8 +12,14 @@
   import { PRESETS, type Preset } from "./presets";
   import NeedleChart from "./views/NeedleChart.svelte";
   import FabricView from "./views/FabricView.svelte";
-  import { relax } from "./mesh/relax";
-  import { yarnPull, doubleStitchStiffness } from "./model/physical";
+  import { settle, describeShape } from "./mesh/settle";
+  import {
+    yarnPull,
+    doubleStitchStiffness,
+    stitchAspect,
+    smallestBump,
+    flatnessThreshold,
+  } from "./model/physical";
 
   const STORAGE_KEY = "shortrow-lab.v1";
 
@@ -105,7 +111,25 @@
 
   // Set when the photo came with a book example, so that loading one of our
   // own examples afterwards doesn't leave the book's swatch beside it.
-  let photoFromExample = false;
+  // Remembered across reloads along with the photo itself — otherwise a reload
+  // forgets where the photo came from and it lingers by the wrong pattern.
+  const PHOTO_FROM_EXAMPLE_KEY = "shortrow-lab.photo-from-example.v1";
+  let photoFromExample = $state(
+    (() => {
+      try {
+        return localStorage.getItem(PHOTO_FROM_EXAMPLE_KEY) === "1";
+      } catch {
+        return false;
+      }
+    })(),
+  );
+  $effect(() => {
+    try {
+      localStorage.setItem(PHOTO_FROM_EXAMPLE_KEY, photoFromExample ? "1" : "0");
+    } catch {
+      // Not remembered; at worst a book photo lingers until removed by hand.
+    }
+  });
 
   function showPhoto(dataUrl: string) {
     photo = dataUrl;
@@ -148,8 +172,9 @@
   const fabric = $derived(simulate(safeStitches, read.passes));
 
   // Straight shows the counting plainly; relaxed shows where the stitches
-  // settle once the yarn pulls each pass level (mesh/relax.ts).
+  // settle (mesh/settle.ts) — the shape the pattern really makes.
   let drawing = $state<"relaxed" | "straight">("relaxed");
+  let showStretch = $state(true);
 
   // The model's guesses, overridable only while developing, to fit them against
   // the photos by eye. In a production build `import.meta.env.DEV` is false and
@@ -159,15 +184,20 @@
   const pull = $derived(import.meta.env.DEV ? tunedPull : yarnPull.compute({}));
   const doubleStitch = $derived(import.meta.env.DEV ? tunedDouble : doubleStitchStiffness.compute({}));
 
-  const relaxed = $derived(
-    drawing === "relaxed" && read.passes.length > 0
-      ? relax(fabric, read.passes, {
+  // The shape is always worked out, whichever way the fabric is drawn: it's
+  // what the verdict reports. Balanced or not, every pattern makes some shape.
+  const shape = $derived(
+    read.passes.length > 0
+      ? settle(fabric, read.passes, {
           yarnPull: pull,
           doubleStitch,
+          stitchAspect: stitchAspect.compute({}),
+          smallestBump: smallestBump.compute({}),
           endsInTurn: read.info.map((i) => i.endsInTurn),
         })
       : null,
   );
+  const verdict = $derived(shape ? describeShape(shape, flatnessThreshold.compute({})) : null);
 
   const perRepeat = $derived(read.info.filter((i) => i.repeat === 1).length);
   const chartPasses = $derived(read.passes.slice(0, perRepeat));
@@ -184,25 +214,31 @@
   const strandColour = $derived(new Map(read.strands.map((s) => [s.id, s.colour])));
   const colourOfStrand = (strand: string) => colourOf(strandColour.get(strand) ?? strand);
 
-  // Hover is tracked in chart terms — a pass within one repeat — so that
-  // pointing at any repeat of a stitch lights up the line that makes it.
-  const linked = (pass: number) => hovered !== null && perRepeat > 0 && pass % perRepeat === hovered;
+  // Hover is tracked two ways. `hovered` is a line of the chart — a pass within
+  // one repeat. `hoveredExact` is the one actual pass under the pointer in the
+  // fabric. Pointing at the fabric lights up just that pass, in that repeat;
+  // pointing at the chart, which shows one repeat for all of them, lights up
+  // that pass in every repeat.
+  let hoveredExact = $state<number | null>(null);
+  const linked = (pass: number) =>
+    hoveredExact !== null
+      ? pass === hoveredExact
+      : hovered !== null && perRepeat > 0 && pass % perRepeat === hovered;
   const fromFabric = (pass: number | null) => {
+    hoveredExact = pass;
     hovered = pass === null || perRepeat === 0 ? null : pass % perRepeat;
   };
+  const fromChart = (line: number | null) => {
+    hoveredExact = null;
+    hovered = line;
+  };
 
-  // Where the fabric falls short, as runs of neighbouring columns.
-  const shortfalls = $derived.by(() => {
-    const top = Math.max(...fabric.heights);
-    const runs: { from: number; to: number; short: number }[] = [];
-    fabric.heights.forEach((h, i) => {
-      const short = top - h;
-      const last = runs[runs.length - 1];
-      if (short === 0) return;
-      if (last && last.to === i && last.short === short) last.to = i + 1;
-      else runs.push({ from: i + 1, to: i + 1, short });
-    });
-    return runs;
+  // Rows per stitch, per repeat: one number when balanced, a range when not.
+  const rowRange = $derived.by(() => {
+    const per = (h: number) => Math.round((h / safeRepeats) * 10) / 10;
+    const lo = per(Math.min(...fabric.heights));
+    const hi = per(Math.max(...fabric.heights));
+    return lo === hi ? `${lo}` : `${lo}–${hi}`;
   });
 
   const problems = $derived([
@@ -248,6 +284,7 @@
     stitches = preset.stitches;
     loaded = { text: preset.text, about: preset.about };
     hovered = null;
+    hoveredExact = null;
 
     if (preset.photo) {
       try {
@@ -354,8 +391,8 @@
           <span>Double stitch stiffness: {tunedDouble.toFixed(2)} <small>(model: {doubleStitchStiffness.compute({})})</small></span>
           <input type="range" min="0.05" max="1" step="0.05" bind:value={tunedDouble} />
         </label>
-        {#if relaxed}
-          <small>Settled in {relaxed.iterations} rounds{relaxed.converged ? "" : " — didn't fully settle"}.</small>
+        {#if shape}
+          <small>Settled in {shape.iterations} rounds{shape.converged ? "" : " — didn't fully settle"}.</small>
         {/if}
       </fieldset>
     {/if}
@@ -380,24 +417,28 @@
   </section>
 
   <section class="results" aria-label="Result">
-    <div class="status" class:good={fabric.balanced && problems.length === 0} class:bad={!fabric.balanced}>
-      {#if read.passes.length === 0}
+    <div
+      class="status"
+      class:good={verdict?.kind === "rectangle" && problems.length === 0}
+      class:neutral={verdict?.kind === "fan"}
+      class:bad={verdict?.kind === "stretched"}
+    >
+      {#if !verdict}
         <p class="verdict">No rows yet.</p>
-      {:else if fabric.balanced}
-        <p class="verdict">✓ Balanced — every stitch gets {fabric.heights[0] / safeRepeats} rows per repeat.</p>
+      {:else if verdict.kind === "rectangle"}
+        <p class="verdict">✓ Lies flat — a rectangle.</p>
+      {:else if verdict.kind === "fan"}
+        <p class="verdict">◢ Lies flat — fans out about {verdict.degrees}°, the {verdict.longer} edge longer.</p>
       {:else}
-        <p class="verdict">✗ Not balanced — the fabric would pull up where stitches are short.</p>
-        <ul class="shortfalls">
-          {#each shortfalls as s (s.from)}
-            <li>
-              {s.from === s.to ? `Column ${s.from} is` : `Columns ${s.from}–${s.to} are`}
-              {s.short} {s.short === 1 ? "row" : "rows"} short
-            </li>
-          {/each}
-        </ul>
+        <p class="verdict">
+          ✗ Won't lie flat — the rows over
+          {verdict.fromColumn === verdict.toColumn ? `column ${verdict.fromColumn}` : `columns ${verdict.fromColumn}–${verdict.toColumn}`}
+          would have to stretch about {verdict.percent}%. Real yarn would pop up there instead.
+        </p>
       {/if}
       {#if read.passes.length > 0}
         <p class="facts">
+          {fabric.balanced ? "Balanced" : "Not balanced"}: {rowRange} rows per stitch per repeat ·
           {read.rowsPerRepeat} rows · {perRepeat} passes per repeat ·
           {read.strands.length} {read.strands.length === 1 ? "strand" : "strands"}
           ({read.strands.map((s) => s.id).join(", ")}) · {read.strands.length * 2} ends to weave in
@@ -420,7 +461,9 @@
 
     <p class="hover-line" aria-live="polite">
       {#if hoveredInfo && hoveredPass}
-        Row {hoveredInfo.row} ({hoveredInfo.side}), yarn {hoveredInfo.strand}: columns
+        Row {hoveredInfo.row} ({hoveredInfo.side}){hoveredExact !== null && safeRepeats > 1
+          ? `, repeat ${Math.floor(hoveredExact / perRepeat) + 1}`
+          : ""}, yarn {hoveredInfo.strand}: columns
         {hoveredPass.from} → {hoveredPass.to}
         ({Math.abs(hoveredPass.to - hoveredPass.from) + 1} sts){hoveredInfo.turnAt !== null ? ", then turn" : ""}
       {:else}
@@ -442,13 +485,25 @@
             <span>
               {safeRepeats} {safeRepeats === 1 ? "repeat" : "repeats"}.
               {#if drawing === "relaxed"}
-                Ridges bend where the yarn pulls them — how far is still a prediction.
+                The shape it really makes — ridges bend and rows tilt. How far is still a prediction.
               {:else}
                 Every row stacked straight up — shows the counting, not the shape.
               {/if}
             </span>
+            {#if drawing === "relaxed" && verdict?.kind === "stretched"}
+              <label class="check">
+                <input type="checkbox" bind:checked={showStretch} /> Outline stretched stitches
+              </label>
+            {/if}
           </figcaption>
-          <FabricView {fabric} layout={relaxed} {colourOfStrand} {linked} onhover={fromFabric} />
+          <FabricView
+            {fabric}
+            shape={drawing === "relaxed" ? shape : null}
+            showStretch={showStretch && verdict?.kind === "stretched"}
+            {colourOfStrand}
+            {linked}
+            onhover={fromFabric}
+          />
         </figure>
         {#if photo}
           <figure>
@@ -470,7 +525,7 @@
             info={chartInfo}
             {colourOf}
             {hovered}
-            onhover={(k) => (hovered = k)}
+            onhover={fromChart}
           />
         </figure>
       </div>
@@ -615,14 +670,20 @@
   .status.bad {
     border-left-color: var(--bad);
   }
+  .status.neutral {
+    border-left-color: var(--accent);
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
   .verdict {
     margin: 0;
     font-weight: 600;
-    color: var(--ink);
-  }
-  .shortfalls {
-    margin: 6px 0 0;
-    padding-left: 18px;
     color: var(--ink);
   }
   .facts {
