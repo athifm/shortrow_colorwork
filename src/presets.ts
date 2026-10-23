@@ -37,8 +37,7 @@ Rows 7 to 8: (A) Knit all sts`,
     text: `Row 1 (WS): (A) Knit all sts
 Row 2 (RS): (B) K9, SR
 Row 3: (B) Knit to end
-Row 4: (A) Knit all sts
-Rows 5 to 6: (A) Knit all sts`,
+Rows 4 to 6: (A) Knit all sts`,
   },
   {
     name: "Lens",
@@ -86,13 +85,13 @@ Row 12: (B) Knit to end`,
   {
     name: "Bump",
     about:
-      "Short rows in B over the middle four stitches only, with both sides caught up to each other but not to the middle. The middle grows longer than both edges — no flat shape fits, so the next full row would have to stretch over it.",
+      "Short rows in B over the middle stitches only — a shrinking zigzag, each turn in a different column — and the two sides levelled with each other but not with the middle. The middle grows longer than both edges: no flat shape fits, so the next full row would have to stretch over it.",
     stitches: 12,
     text: `Row 1 (WS): (A) Knit all sts
-Row 2 (RS): (A) K4, (B) K4, SR, K4, SR, K4, SR, K4, SR, K4, SR
+Row 2 (RS): (A) K4, (B) K6, SR, K5, SR, K4, SR, K3, SR, K2, SR
 Row 3: (B) K4, (A) Knit to end
 Row 4: (A) Knit all sts
-Row 5: (A) K4, SR
+Row 5: (A) K2, SR
 Row 6: (A) Knit to end
 Rows 7 to 8: (A) Knit all sts`,
   },

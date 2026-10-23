@@ -87,7 +87,8 @@ describe("a bump — short rows in the middle", () => {
   it("won't lie flat, and says where", () => {
     expect(verdict.kind).toBe("stretched");
     if (verdict.kind === "stretched") {
-      expect(verdict.fromColumn).toBeLessThanOrEqual(5);
+      // The zigzag covers columns 5–10, tallest at 7–8.
+      expect(verdict.fromColumn).toBeLessThanOrEqual(7);
       expect(verdict.toColumn).toBeGreaterThanOrEqual(8);
     }
   });

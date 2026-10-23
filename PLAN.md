@@ -749,14 +749,139 @@ line saying they are responsible for what they upload, and no more than that.
 
 ---
 
-## 9. Immediate next steps
+## 9. Picture → pattern: the first steps
 
-1. **Done**: M0 — test runner, publishing workflow, `model/physical`, dev code
-   kept out of the production build.
-2. **Done**: first research pass over the textbook (§2.5).
-3. **Me**: the forward simulator (§2.2), checked against the textbook's stripe
-   patterns.
-4. **You**: upright photos of the Harvest, diamonds and peaks charts, and the
-   book's title and author.
-5. **Me, then you**: M1 — the test stripe. I write its instructions; you knit it
-   and measure the ridge bend.
+Agreed 2026-10-23. The pattern → fabric direction is done: reading patterns,
+counting rows, drawing the shape (balanced or not), comparing with photos. This
+section plans the reverse, starting small.
+
+### Why it starts with motifs, not pictures
+
+Going backwards has many answers. In short-row colorwork *how* a shape is built
+is part of its look: the book's fish are fish because B works a zigzag of turns
+that shrink then grow. The same colours stacked row by row would look different
+and need far more yarn ends. So the first generator builds shapes the way the
+book does — from motifs — and painting a free grid comes second.
+
+### Words used here
+
+- **Pass** — one trip of the needle in one yarn: from where it starts to where it
+  turns, reaches an edge, or hands over to another yarn. One line of the chart.
+  The app works in passes.
+- **Written row** — how a pattern groups passes for the knitter to read. Shoal's
+  row 7 is twelve passes; Short Stripes' row 2 is one.
+
+### Rules every pattern must keep
+
+**1. No turning stitch directly on top of another.** A turn may not land in the
+same column as a turn just below it with no ordinary row between them. Once an
+ordinary row has been knitted over it, a turn in that column is fine again. The
+app checks this on every pattern — generated, typed or from the book.
+
+**2. Every stop is someone else's start.** The needle never jumps. Wherever one
+colour stops, the next stitch is worked by another colour — either a **new
+yarn** joined there (two more ends), or a **yarn already waiting there**: the one
+put down earlier. To pick that one up again, the current colour must come back
+to the exact stitch where it was left. Two kinds of hand-over occur:
+
+- **at an edge** — the next colour starts on the same stitch and goes back the
+  other way (a row end);
+- **mid-row** — the next colour starts on the next stitch and carries on the same
+  way (Shoal: A stops at stitch 4, B starts at 5).
+
+**3. A colour goes out and comes back.** From picking a yarn up to putting it
+down, it makes an even number of passes, so it ends where it began and is
+waiting there next time. The colours nest like brackets: A goes out and hands to
+B; B goes and returns; A picks up and returns. An odd trip is possible, but then
+the next colour has to be *brought* to where it ended — the mechanism is left for
+later, and the first generator keeps to even trips.
+
+Checked against the book (2026-10-23): all five patterns, two repeats each — no
+odd trips anywhere, and every hand-over is one of the two kinds above.
+
+### Stage A — Writer: passes → written rows
+
+Turns a list of passes back into rows in the book's style: "(A) K4, (B) K14, SR,
+K12, SR…". Mid-row yarn changes stay in one row; zigzags are grouped as the book
+groups them.
+
+- **Check:** round trip. Write any pattern out, read it back with the reader, and
+  the passes must be identical. All five book patterns, privately.
+- **Done 2026-10-23** (`methods/shortrow/writer.ts`). All five book patterns
+  write out **identical to the book's own text** — same row breaks, same "Rows 4
+  to 5" merges, same "SR, knit to end" — and read back pass for pass. The book's
+  row-break rule, worked out from its patterns: a row ends at an edge, or at a
+  turn whose next pass runs all the way back to an edge, and only after a pass
+  that went the row's own way.
+
+### Stage B — Catch-up solver (development tool for now)
+
+Given a pattern that leaves some columns short, it adds background short-row
+pairs to level them.
+
+- **Step size is free.** Pairs may shorten by one stitch or several.
+- **Choices per motif:** which edge to work from, whether the catch-ups come
+  before or after the motif, and the step size. The book says placement changes
+  the look, so this is a design choice, not a fixed rule.
+- **The turn rule holds.** Where the tidy answer would stack turns — a flat
+  stretch several rows short — it staggers them across neighbouring columns,
+  leaving at most a stitch or so of unevenness, which the shape engine already
+  treats as absorbed.
+- **It says when it can't.** Short columns in the middle, out of reach from the
+  edges, are reported, not guessed at.
+- **Check against the book:** remove the catch-up rows from Alternating Stripes,
+  Leaning Stripes, Harvest and Shoal, and let the solver put them back with the
+  book's settings. It should reproduce the book's own rows; where it doesn't,
+  that shows exactly what's misunderstood.
+- **Done 2026-10-23** (`methods/shortrow/balance.ts`, `rules.ts`, and a
+  development-only "Balance it" tool on the page). What the book check showed:
+  - All 14 catch-up groups in the five patterns are rebuilt with the right pair
+    lengths. In 13, one of the three orders (longest first, shortest first,
+    alternate) matches the book exactly. Harvest row 16 uses an order outside
+    them (K10, K8, K11) — a custom order would cover it.
+  - The stripe patterns' catch-ups come out exactly even from "level everything
+    from here". Harvest and Shoal don't level all at once: the book spreads
+    their catch-ups through the repeat, some *before* the motif to shape its bed.
+    That is the before/after choice Stage C will offer.
+  - Rule 1 holds in all five book patterns: no stacked turns. It caught one of
+    our own examples breaking it (the first Bump), which was redesigned.
+  - Building it also caught a rule 3 slip: carrying the yarn to the other edge
+    with one full row and not bringing it back left the repeat an odd number of
+    rows. The solver now always brings the yarn home.
+
+### Stage C — One motif on a background
+
+You choose the motif (stripe, or lens/fish), its width and position, the number
+of turns and their step, and the catch-up choices from Stage B. The app builds
+the whole pattern:
+
+1. the base rows;
+2. A knits to the motif and hands over to B;
+3. B's zigzag;
+4. A finishes the row;
+5. the Stage B catch-ups.
+
+- **Check:** the reader, counter and shape engine must say "lies flat — a
+  rectangle"; the turn rule must hold; and the drawing must show the motif asked
+  for.
+
+### Stage D — On the page
+
+A "Design" panel. Its output is written rows, placed straight into the
+written-rows box, so the chart, fabric, verdict and photo comparison all work on
+generated patterns with nothing extra.
+
+### Later (planned separately)
+
+- Several motifs at once, and more shapes: a leaf with a stem, a wedge.
+- **Painting a grid** — the second way of saying what you want.
+- Finally, **from a picture**: find the shapes in it, fit motifs to them,
+  generate.
+
+### Also outstanding
+
+- **You:** knit the Wedge and Bump examples — it would turn four guesses in §2.4
+  into measurements; the book's title and author; more book pages, especially
+  where turns are close together.
+- **Me:** check whether GitHub Pages is switched on. The latest commit is local
+  only until you say push.

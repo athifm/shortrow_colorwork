@@ -9,6 +9,9 @@
 <script lang="ts">
   import { readWritten } from "./methods/shortrow/written";
   import { simulate } from "./methods/shortrow/passes";
+  import { stackedTurns } from "./methods/shortrow/rules";
+  import { levelOut, type Order } from "./methods/shortrow/balance";
+  import { writeRows } from "./methods/shortrow/writer";
   import { PRESETS, type Preset } from "./presets";
   import NeedleChart from "./views/NeedleChart.svelte";
   import FabricView from "./views/FabricView.svelte";
@@ -241,8 +244,57 @@
     return lo === hi ? `${lo}` : `${lo}–${hi}`;
   });
 
+  // Rule 1 (PLAN.md §9): no turning stitch directly on top of another.
+  const stacked = $derived(stackedTurns(fabric, read.passes, read.info.map((i) => i.endsInTurn)));
+
+  // "Balance it" — development only for now (PLAN.md §9, Stage B). Levels one
+  // repeat of the pattern with catch-up pairs and writes the whole thing back
+  // into the box, so the result can be looked at like any other pattern.
+  let balanceSide = $state<"left" | "right" | "both">("left");
+  let balanceOrder = $state<Order>("longest-first");
+  let balanceStep = $state(1);
+  let balanceMessages = $state<{ text: string; problem: boolean }[]>([]);
+
+  function balanceIt() {
+    const one = readWritten(text, safeStitches, 1);
+    if (one.passes.length === 0) {
+      balanceMessages = [{ text: "There are no rows to balance yet.", problem: true }];
+      return;
+    }
+    const background = one.strands[0]?.id ?? "A";
+    const result = levelOut(safeStitches, one.passes, {
+      yarn: background,
+      side: balanceSide,
+      order: balanceOrder,
+      step: balanceStep,
+    });
+    const messages = [
+      ...result.problems.map((p) => ({ text: p, problem: true })),
+      ...result.notes.map((n) => ({ text: n, problem: false })),
+    ];
+    if (result.problems.length > 0 || result.passes.length === 0) {
+      balanceMessages = messages.length ? messages : [{ text: "Nothing to add — it's already level.", problem: false }];
+      return;
+    }
+    const out = writeRows([...one.passes, ...result.passes], safeStitches, one.info[0].side);
+    if (out.problems.length > 0) {
+      balanceMessages = [...messages, ...out.problems.map((p) => ({ text: p, problem: true }))];
+      return;
+    }
+    text = out.text;
+    loaded = null;
+    const pairs = [...result.right.map((l) => `K${l} from the right`), ...result.left.map((l) => `K${l} from the left`)];
+    balanceMessages = [{ text: `Added ${pairs.length} ${pairs.length === 1 ? "pair" : "pairs"}: ${pairs.join(", ")}.`, problem: false }, ...messages];
+  }
+
   const problems = $derived([
     ...read.problems.map((p) => p.message),
+    ...stacked.map((t) => {
+      const a = read.info[t.passes[0] - 1];
+      const b = read.info[t.passes[1] - 1];
+      return `Column ${t.column}: the turn in row ${b?.row ?? "?"} sits directly on the turn in row ${a?.row ?? "?"}` +
+        `${b && b.repeat > 1 ? ` (repeat ${b.repeat})` : ""}, double stitch on double stitch, with no ordinary row between them.`;
+    }),
     ...fabric.problems.map((p) => {
       const i = read.info[p.pass - 1];
       return i ? `Row ${i.row} (repeat ${i.repeat}): ${p.message}` : p.message;
@@ -394,6 +446,33 @@
         {#if shape}
           <small>Settled in {shape.iterations} rounds{shape.converged ? "" : " — didn't fully settle"}.</small>
         {/if}
+        <div class="balance">
+          <span>Balance it — add catch-up rows to one repeat</span>
+          <div class="pair">
+            <label class="field">
+              <span>From</span>
+              <select bind:value={balanceSide}>
+                <option value="left">left edge</option>
+                <option value="right">right edge</option>
+                <option value="both">both edges</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Order</span>
+              <select bind:value={balanceOrder}>
+                <option value="longest-first">longest first</option>
+                <option value="shortest-first">shortest first</option>
+                <option value="alternate">alternate (Harvest)</option>
+              </select>
+            </label>
+          </div>
+          <label class="field">
+            <span>Stagger stacked turns by {balanceStep} {balanceStep === 1 ? "stitch" : "stitches"}</span>
+            <input type="range" min="1" max="6" step="1" bind:value={balanceStep} />
+          </label>
+          <button type="button" class="button" onclick={balanceIt}>Balance it</button>
+          {#each balanceMessages as m, i (i)}<small class:warn={m.problem}>{m.text}</small>{/each}
+        </div>
       </fieldset>
     {/if}
 
@@ -829,6 +908,18 @@
     font-size: 0.8rem;
     color: var(--muted);
     padding: 0 4px;
+  }
+  .balance {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px dashed var(--line);
+    padding-top: 8px;
+    font-size: 0.85rem;
+    color: var(--ink);
+  }
+  .balance .button {
+    align-self: flex-start;
   }
   .dev p {
     margin: 0;
