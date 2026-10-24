@@ -912,7 +912,7 @@ constructor.
 
 | Step | What |
 |---|---|
-| **E** | **The limitations list, and probe grids.** Draft the hard and soft limits from what's proven, and a set of small test grids — a diagonal, a circle, two touching blobs, a vertical bar, a ring, a checkerboard, a single dot — each aimed at one question. You mark each limit: fine / adjust automatically / adjust and ask / redraw. This list is the spec for F. |
+| **E** | **The limitations list, and probe grids** — in [LIMITS.md](LIMITS.md) — **done 2026-10-24**: all 16 limitations marked by you. Key decisions: up to 10 colours; unlimited yarn ends but always the fewest possible, with a cut-off set at the end of the project; you set the gauge; and **straight vertical edges are intarsia** (hand-overs) — short rows are only essential where an edge curves across the fabric. When a grid can be knitted several ways, the app shows them side by side and you pick. Draft the hard and soft limits from what's proven, and a set of small test grids — a diagonal, a circle, two touching blobs, a vertical bar, a ring, a checkerboard, a single dot — each aimed at one question. You mark each limit: fine / adjust automatically / adjust and ask / redraw. This list is the spec for F. |
 | **F** | **Construct from any grid** — the real inverse. Regions of colour → passes, strands, catch-ups, following E's rules and reporting what it adjusted or refused. Check: given the grid a Stage C design produces, it finds an equally good pattern. |
 | **G** | **Rasterize** — canvas pixels to a stitch grid at the knitter's gauge (two rows to a stitch's width in garter), with clean-up of specks and ragged edges. |
 | **H** | **Draw on a canvas** — the end goal. |
