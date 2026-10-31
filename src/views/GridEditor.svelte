@@ -10,8 +10,11 @@
   worked out for, and marked out of date once it changes.
 
   The drawing is read as the finished look by default (PLAN.md §5, "Draw the
-  look"): mesh/convert.ts works out what to knit so that it bends into it, and
-  the plan and the predicted look are shown beside it. "Draw the needle" reads
+  look"). Each blob of colour is fitted to a short-row unit (PLAN.md §6,
+  mesh/fit.ts) three ways — the shape grows, the background gives way, or
+  either — and those are offered side by side with the drawing as it is, each
+  with its cost and its predicted look (L19). You pick; the plan and the look
+  of the one picked are shown large. "Draw the needle" reads
   each cell literally: built with short rows (construct.ts), rounded where turns
   would crowd (round.ts, L13), and a steep diagonal shown both ways for you to
   choose (steep.ts, L12). Intarsia alone (F1) is offered alongside, to compare.
@@ -29,7 +32,8 @@
   import { turnsOf } from "../methods/shortrow/rules";
   import { writeRows, colourOfStrand } from "../methods/shortrow/writer";
   import { lookOf } from "../mesh/look";
-  import { convert } from "../mesh/convert";
+  import { versionsOf, type Version, type Way } from "../mesh/fit";
+  import type { UnitKind } from "../methods/shortrow/units";
   import { yarnPull, doubleStitchStiffness } from "../model/physical";
   import { simulate, type Pass } from "../methods/shortrow/passes";
   import { PROBES, SHAPES } from "../methods/shortrow/probes";
@@ -206,23 +210,58 @@
   const asSlope = $derived(sloped ? build(sloped.grid, sloped.changed) : null);
   const shortRows = $derived(steep.length === 0 || way === "vertical" ? asDrawn : way === "slope" ? asSlope : null);
 
-  // Draw the look: worked back to a plan for the needle.
-  const converted = $derived(worked?.mode === "look" ? convert(worked.grid, physics) : null);
+  // Draw the look: the ways to knit it, side by side.
+  const versions = $derived(worked?.mode === "look" ? versionsOf(worked.grid, physics) : null);
+  const shown = $derived(versions ? versions.filter((v) => !v.sameAs) : []);
+  const knits = (v: Version) => v.built.problems.length === 0;
+  /** Picked to start with: the short-row way whose look is nearest the
+   *  drawing, fewest stitches changed on a tie; else the drawing as it is. */
+  const suggested = $derived.by((): Way | null => {
+    if (!versions) return null;
+    const ok = shown.filter((v) => knits(v) && v.turns > 0);
+    ok.sort((a, b) => a.mismatch.length - b.mismatch.length || a.changed.length - b.changed.length);
+    return ok[0]?.way ?? "as drawn";
+  });
+  let wayPick = $state<{ key: string; way: Way } | null>(null);
+  const chosen = $derived.by(() => {
+    if (!versions || !worked) return null;
+    const w = wayPick?.key === worked.key ? wayPick.way : suggested;
+    return versions.find((v) => v.way === w) ?? null;
+  });
+
+  const WAY_NAME: Record<Way, string> = {
+    "as drawn": "As drawn",
+    grow: "The shape grows",
+    "give way": "The background gives way",
+    both: "Either way, fewest changes",
+  };
+  const WAY_HINT: Record<Way, string> = {
+    "as drawn": "Every stitch as you drew it.",
+    grow: "Stitches added in the shape's colour, none taken away.",
+    "give way": "Stitches taken from the shape, none added.",
+    both: "Added or taken, whichever changes the fewest stitches.",
+  };
+  const KIND_NAME: Record<UnitKind, string> = {
+    stripe: "a stripe",
+    "edge shape": "a shape from the edge",
+    peak: "a peak",
+    lens: "a lens",
+    "leaning stripe": "a leaning stripe",
+  };
+  const unitsOf = (v: Version) => v.units.map((u) => `${KIND_NAME[u.kind]} in ${u.colour}`).join(", ");
 
   /** The pattern to knit, whichever way the drawing was read. */
   const active = $derived.by(() => {
     if (!grid) return null;
     if (needle) return shortRows;
-    if (!converted) return null;
-    const b = converted.built;
-    return { ...b, turns: turnsOf(b.passes, grid.width).filter(Boolean).length };
+    return chosen ? { ...chosen.built, turns: chosen.turns } : null;
   });
 
   /** What it will look like, and where that differs from the drawing. */
   const view = $derived.by(() => {
     if (!grid) return null;
     if (needle) return shortRows && shortRows.problems.length === 0 ? lookFor(grid, shortRows.passes) : null;
-    return converted?.look ? { cells: converted.look, differs: converted.mismatch } : null;
+    return chosen?.look ? { cells: chosen.look, differs: chosen.mismatch } : null;
   });
 
   /** Intarsia alone (F1): knits anything, at a price in yarn. */
@@ -257,6 +296,17 @@
       {/each}
     {/each}
     {#each changed as ch (`${ch.ridge},${ch.column}`)}
+      <!-- The colour you drew, still showing in the middle of the cell. -->
+      {#if size >= CELL}
+        <rect
+          class="thumb-drawn"
+          x={(w - ch.column) * size + size / 3}
+          y={(h - 1 - ch.ridge) * size + size / 3}
+          width={size / 3}
+          height={size / 3}
+          fill={colourOf(ch.from)}
+        />
+      {/if}
       <rect
         class="thumb-changed"
         x={(w - ch.column) * size + 0.5}
@@ -375,19 +425,55 @@
           The drawing or the reading has changed since this was worked out. Press "Work out the knitting" again.
         </p>
       {/if}
+      {#if versions && worked}
+        <fieldset class="steep ways-to-knit" class:stale>
+          <legend>Ways to knit it — pick one. Each shape is fitted to a short-row unit, three ways.</legend>
+          <div class="ways">
+            {#each shown as v (v.way)}
+              {@const twins = versions.filter((o) => o.sameAs === v.way).map((o) => WAY_NAME[o.way].toLowerCase())}
+              <button
+                type="button"
+                class="way"
+                aria-pressed={chosen?.way === v.way}
+                onclick={() => (wayPick = { key: worked.key, way: v.way })}
+              >
+                {@render thumb(v.plan.cells, v.changed)}
+                <strong>{WAY_NAME[v.way]}{v.way === suggested ? " (suggested)" : ""}</strong>
+                <span>{WAY_HINT[v.way]}{twins.length > 0 ? ` The same as: ${twins.join(", ")}.` : ""}</span>
+                {#if !knits(v)}
+                  <span class="bad">Can't be knitted with short rows yet.</span>
+                {:else}
+                  <span>
+                    {v.changed.length} {v.changed.length === 1 ? "stitch changes" : "stitches change"} ·
+                    {v.balls} balls ({v.balls * 2} ends) · {v.turns} {v.turns === 1 ? "turn" : "turns"}
+                  </span>
+                  <span>
+                    {v.turns === 0
+                      ? "All hand-overs: intarsia, not short-row colorwork."
+                      : `Its look: ${v.mismatch.length} ${v.mismatch.length === 1 ? "cell differs" : "cells differ"} from your drawing.`}
+                  </span>
+                  {#if v.units.length > 0}<span>Found: {unitsOf(v)}.</span>{/if}
+                {/if}
+              </button>
+            {/each}
+          </div>
+        </fieldset>
+      {/if}
+
       <div class="panels" class:stale>
-        {#if converted}
-          {@const n = converted.planChanges.length}
+        {#if chosen}
+          {@const n = chosen.changed.length}
           <div class="panel">
             <p class="note">
-              <strong>What to knit</strong>, on the needle.
+              <strong>What to knit</strong> — {WAY_NAME[chosen.way].toLowerCase()}.
               {#if n === 0}
                 The same as your drawing.
               {:else}
-                {n} {n === 1 ? "cell differs" : "cells differ"} from your drawing (outlined), so that it bends into your look.
+                {n} {n === 1 ? "stitch differs" : "stitches differ"} from your drawing (outlined; the small square is
+                the colour you drew).
               {/if}
             </p>
-            <div class="canvas">{@render thumb(converted.plan.cells, converted.planChanges, CELL)}</div>
+            <div class="canvas">{@render thumb(chosen.plan.cells, chosen.changed, CELL)}</div>
           </div>
         {/if}
 
@@ -399,7 +485,7 @@
                 It matches your drawing.
               {:else}
                 {view.differs.length} {view.differs.length === 1 ? "cell differs" : "cells differ"} from your
-                drawing (outlined).
+                drawing (outlined; the small square is the colour you drew).
               {/if}
             </p>
             <div class="canvas">{@render thumb(view.cells, view.differs, CELL)}</div>
@@ -580,7 +666,8 @@
     flex-wrap: wrap;
     gap: 16px;
   }
-  .panels.stale {
+  .panels.stale,
+  .ways-to-knit.stale {
     opacity: 0.45;
   }
   .panel {
@@ -600,7 +687,7 @@
     color: var(--ink);
   }
   .steep {
-    margin: 12px 0 0;
+    margin: 12px 0 12px;
     padding: 8px;
     border: 1px solid var(--line);
     border-radius: 6px;
@@ -642,6 +729,13 @@
   }
   .thumb-cell {
     stroke: none;
+  }
+  .thumb-drawn {
+    stroke: var(--ink);
+    stroke-width: 0.5;
+  }
+  .bad {
+    color: var(--bad) !important;
   }
   .thumb-changed {
     fill: none;
