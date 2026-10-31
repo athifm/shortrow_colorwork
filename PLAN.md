@@ -234,14 +234,17 @@ The builder (`construct.ts`) learned more ways to lay the background around
 shapes — free columns raised to suit, bumps on the way home, a plain turn
 between hand-overs — tried only after the old ways, so patterns that knitted
 before knit the same. A shape that is one run per column is no longer cut up
-at forks (the zigzag band).
+at forks (the zigzag band). A patch that wraps round the shape it sits beside —
+the background under a T's crossbar tip and over it — is cut in two at that
+level, each part its own trip (L18).
 
 **Step 4 — The editor shows the fit. Done 2026-10-31.** In the Draw tab, "Work
 out the knitting" now shows the ways side by side, each with stitches changed,
 balls, ends, turns, how many cells of its look differ from your drawing, and
 the units found. The closest short-row way is picked to start with; pick
 another and the big panels follow. Changed cells keep a small square of the
-colour you drew. Not done: marking on the drawing a blob that fits no unit.
+colour you drew. Where the way picked gets stuck, the spot is ringed on your
+drawing; a shape no unit fits is outlined.
 
 **Where the shapes stand now** (the best short-row way for each):
 
@@ -256,21 +259,21 @@ colour you drew. Not done: marking on the drawing a blob that fits no unit.
 | S12 two blobs side by side | stuck | knits as drawn |
 | S13 blob inside a blob | stuck | 6 stitches change (background gives way) |
 | S15 your blob, two colours | stuck | nudged: 2 stitches change, 7 balls |
-| S5 fish with a tail, S16 your fish | stuck | still stuck (queued below) |
-| S17 your T | all hand-overs | still; fitted versions stuck (queued below) |
+| S5 fish with a tail | stuck | still stuck (queued below) |
+| S16 your fish | stuck | one rough way: the shape grows, 40 stitches change, 9 balls |
+| S17 your T | all hand-overs | 4 stitches change: 3 balls, 11–12 turns, or 4 balls, 15 turns |
 
 **Next in this section** (queued, not started):
 
 - **Tails.** A flared tail is the opposite of a unit — wider at its end than at
-  the joint. Idea: a body unit plus a tail unit of the same colour. Your fish
-  also has a straight right side 7 ridges tall, which a single unit can only
-  reach by changing 40-odd stitches.
-- **The T, and anything reaching the top or cast-on (L18).** The background
-  beside it has to be visited twice — before the shape and after — and the
-  builder visits a patch in one trip only.
+  the joint. Idea: a body unit plus a tail unit of the same colour.
+- **Round shapes, like your fish's body.** A unit thickens a ridge per stitch at
+  most, so a body 10 stitches wide reaches about 5 ridges, not 9, without big
+  changes. Short-row colorwork gets round shapes from the ridges bending; with
+  today's guesses (§3) the bending is small. Worth revisiting after
+  calibration.
 - **Wave band look.** Knitted in one piece it looks less like the drawing than
   when it was cut up; offer both?
-- Mark on the drawing a blob that fits no unit.
 - Old "draw the look" conversion (L3, `convert.ts`) is no longer used by the
   editor; it only fine-tunes for bending, which the guesses make small.
 
@@ -332,7 +335,7 @@ short-row colorwork).
 | L15 | A drawing can be knitted several ways that look different | ask: side by side, you pick | later (F3) |
 | L16 | Bending and flatness are guesses | fine: labelled a prediction | built |
 | L17 | Carrying a yarn across the back to start a stitch or two away | allowed up to 2 stitches; an exact start preferred | built |
-| L18 | A shape running from cast-on to top splits the background: each side needs its own ball (the T; a peak reaching the top) | as L7: allowed, fewest ends, shown (decided 2026-10-31) | built: counted as L7 |
+| L18 | A shape running from cast-on to top splits the background: each side needs its own ball (the T; a peak reaching the top) | as L7: allowed, fewest ends, shown (decided 2026-10-31) | built: counted as L7; a background wrapping round the shape is cut in two (§6) |
 | L19 | Softening a shape with extra stitches so it knits with short rows instead of hand-overs (the T) | ask, showing **every** version side by side, each with its balls, ends and turns: the shape grows, the background gives way, a mix, and unsoftened (decided 2026-10-31) | built (§6, Draw tab) |
 
 **Probes.** The 18 drawings of Stage E live in `src/methods/shortrow/probes.ts`,
