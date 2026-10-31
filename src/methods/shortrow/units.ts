@@ -334,6 +334,16 @@ export function fitUnits(grid: Grid, softening: Softening, { strict = true }: { 
       return false;
     }
     const mine = (r: number, c: number) => fam.has(ownerOf[r * N + c]);
+    // Another blob of the same colour, drawn or fitted, right beside: growing
+    // into touch would make the two one patch, and break the rule.
+    const twin = (o: number) => o >= 0 && !fam.has(o) && blobs[o].colour === blob.colour;
+    const touchesTwin = (r: number, c: number) =>
+      [
+        [r + 1, c],
+        [r - 1, c],
+        [r, c + 1],
+        [r, c - 1],
+      ].some(([nr, nc]) => nr >= 0 && nr < H && nc >= 0 && nc < N && (twin(ownerOf[nr * N + nc]) || twin(taken[nr * N + nc])));
     const allowed = (r: number, c: number) => {
       const at = r * N + c;
       if (mine(r, c)) return blob.parent === null ? true : inParent(at) || taken[at] === -1;
@@ -341,7 +351,7 @@ export function fitUnits(grid: Grid, softening: Softening, { strict = true }: { 
       // else's unit — siblings keep their space.
       const owner = ownerOf[at];
       const free = owner === -1 || owner === blob.parent;
-      if (!free) return false;
+      if (!free || touchesTwin(r, c)) return false;
       return blob.parent === null ? taken[at] === -1 : inParent(at) && taken[at] === blob.parent;
     };
     // What it sits in, column by column: the parent unit's bottom and top,
