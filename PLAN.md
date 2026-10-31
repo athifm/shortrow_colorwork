@@ -120,9 +120,11 @@ until it's measured.
 | `methods/shortrow/intarsia.ts` | any grid with hand-overs alone |
 | `methods/shortrow/construct.ts` | any grid with short rows: a tree of trips, one per patch |
 | `methods/shortrow/round.ts`, `steep.ts` | rounding where turns crowd; the steep-diagonal choice |
+| `methods/shortrow/units.ts` | blobs fitted to short-row units, three ways (§6) |
 | `methods/shortrow/grid.ts`, `probes.ts` | the grid notation; the probe drawings |
 | `mesh/settle.ts`, `relax.ts` | the fabric's shape and its bent ridges |
 | `mesh/look.ts`, `convert.ts` | a plan's look on the drawing's grid; look → plan, cell by cell |
+| `mesh/fit.ts` | the ways to knit a drawing, each knitted, counted and predicted (§6) |
 | `model/physical.ts` | every guess (§3) |
 | `views/` | chart, fabric, design panel, the Draw tab |
 
@@ -203,33 +205,74 @@ Read: 8 of 17 can't be built as drawn; 2 can't be built at all in "draw the
 look"; the T builds but isn't short-row colorwork. "Cells off" is where the
 predicted look differs from the drawing.
 
-**Step 2 — The units.** Each knitted the book's way, with a few settings
-(width, height, steps, position), and each knowing its stitch plan and
-predicted look:
+**Step 2 — The units. Done 2026-10-31** (`units.ts`). One rule turned out to
+make every unit in the book. Read column by column, a shape knits with short
+rows when it is one run of its colour in each column, and from one column to
+the next:
 
-| Unit | Knitted as | Built? |
+- the layer under it, the layer over it and its own thickness each change by
+  a ridge at most — every turn a stitch further on, so no two stack;
+- none of them makes a bump one stitch wide (two turns on one stitch);
+- short of the fabric's edge, it ends in a tip one ridge thick (not a
+  vertical edge, which is intarsia's).
+
+Under and over are measured within whatever the shape sits in, so nested
+shapes follow the same rule. Stripe, short stripe, wedge, leaning stripe,
+peak, lens and nested peaks are all special cases; the app names each unit it
+finds ("a lens in B").
+
+**Step 3 — Fitting. Done 2026-10-31** (`units.ts`, `mesh/fit.ts`). Each blob
+is fitted to the nearest shape that keeps the rule — exactly, by trying every
+bottom and top column by column — outermost first, then the ones inside it.
+"Nearest" three ways, which are L19's versions: **the shape grows** (stitches
+added in its colour), **the background gives way** (stitches taken from the
+shape), **either, fewest changes**. Alongside: the drawing **as drawn**, and
+**nudged** (L13's rounding) when it can't be knitted as drawn. Each version is
+knitted for real, counted, and given its predicted look.
+
+The builder (`construct.ts`) learned more ways to lay the background around
+shapes — free columns raised to suit, bumps on the way home, a plain turn
+between hand-overs — tried only after the old ways, so patterns that knitted
+before knit the same. A shape that is one run per column is no longer cut up
+at forks (the zigzag band).
+
+**Step 4 — The editor shows the fit. Done 2026-10-31.** In the Draw tab, "Work
+out the knitting" now shows the ways side by side, each with stitches changed,
+balls, ends, turns, how many cells of its look differ from your drawing, and
+the units found. The closest short-row way is picked to start with; pick
+another and the big panels follow. Changed cells keep a small square of the
+colour you drew. Not done: marking on the drawing a blob that fits no unit.
+
+**Where the shapes stand now** (the best short-row way for each):
+
+| Shape | Before units | Now |
 |---|---|---|
-| Stripe | out, turn, back | yes (`motif.ts`) |
-| Short stripe | from an edge, caught up with pairs | yes (`motif.ts`, `balance.ts`) |
-| Wedge, leaning stripe | pairs from one edge | yes (`construct.ts`) |
-| Peak | a zigzag going in | yes (`construct.ts`) |
-| Lens, fish | a zigzag in then out (Shoal), steps of 2+ | yes (`motif.ts`) |
-| Nested peaks | inner first | yes (`construct.ts`) |
-| Background | catch-up pairs, full rows to cross | yes (`balance.ts`) |
+| S1–S4, S14 | knit as drawn | the same |
+| S6 zigzag band | stuck | knits as drawn, 2 balls |
+| S7 oval | stuck | 4 stitches change (background gives way) |
+| S8 teardrop, S9 leaf | knit as drawn | the same, plus fitted versions |
+| S10 wave band | 4 balls, look 2 cells off | 2 balls, look 11 cells off — knitted in one piece now; worth a look |
+| S11 blob at the edge | stuck | 2 stitches change |
+| S12 two blobs side by side | stuck | knits as drawn |
+| S13 blob inside a blob | stuck | 6 stitches change (background gives way) |
+| S15 your blob, two colours | stuck | nudged: 2 stitches change, 7 balls |
+| S5 fish with a tail, S16 your fish | stuck | still stuck (queued below) |
+| S17 your T | all hand-overs | still; fitted versions stuck (queued below) |
 
-**Step 3 — Fitting.** Find each blob of colour in the drawing; for each, the
-unit and settings whose predicted look is closest. Put them together, inner
-first, the background catching up around them; check with the full builder and
-prediction. Stitches added or removed to fit are shown, not hidden.
+**Next in this section** (queued, not started):
 
-**Step 4 — The editor shows the fit.** Your drawing; the units found, each
-named; what you'll get; differences marked clearly, with the colour you drew
-still visible; softening offered as a choice with its ball and turn count (the
-T); a blob that fits no unit marked on the drawing, not only named in a message.
-
-**Softening (L19):** every version is shown side by side — the shape grows into
-the background, the background gives way into the shape, a mix, and the shape
-left as drawn — each with its balls, ends and turns. You pick.
+- **Tails.** A flared tail is the opposite of a unit — wider at its end than at
+  the joint. Idea: a body unit plus a tail unit of the same colour. Your fish
+  also has a straight right side 7 ridges tall, which a single unit can only
+  reach by changing 40-odd stitches.
+- **The T, and anything reaching the top or cast-on (L18).** The background
+  beside it has to be visited twice — before the shape and after — and the
+  builder visits a patch in one trip only.
+- **Wave band look.** Knitted in one piece it looks less like the drawing than
+  when it was cut up; offer both?
+- Mark on the drawing a blob that fits no unit.
+- Old "draw the look" conversion (L3, `convert.ts`) is no longer used by the
+  editor; it only fine-tunes for bending, which the guesses make small.
 
 ---
 
@@ -290,7 +333,7 @@ short-row colorwork).
 | L16 | Bending and flatness are guesses | fine: labelled a prediction | built |
 | L17 | Carrying a yarn across the back to start a stitch or two away | allowed up to 2 stitches; an exact start preferred | built |
 | L18 | A shape running from cast-on to top splits the background: each side needs its own ball (the T; a peak reaching the top) | as L7: allowed, fewest ends, shown (decided 2026-10-31) | built: counted as L7 |
-| L19 | Softening a shape with extra stitches so it knits with short rows instead of hand-overs (the T) | ask, showing **every** version side by side, each with its balls, ends and turns: the shape grows, the background gives way, a mix, and unsoftened (decided 2026-10-31) | planned (§6, steps 3–4) |
+| L19 | Softening a shape with extra stitches so it knits with short rows instead of hand-overs (the T) | ask, showing **every** version side by side, each with its balls, ends and turns: the shape grows, the background gives way, a mix, and unsoftened (decided 2026-10-31) | built (§6, Draw tab) |
 
 **Probes.** The 18 drawings of Stage E live in `src/methods/shortrow/probes.ts`,
 each asking one question — P1 full-width band, P2 band from the edge, P3 gentle
