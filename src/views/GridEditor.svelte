@@ -32,7 +32,7 @@
   import { convert } from "../mesh/convert";
   import { yarnPull, doubleStitchStiffness } from "../model/physical";
   import { simulate, type Pass } from "../methods/shortrow/passes";
-  import { PROBES } from "../methods/shortrow/probes";
+  import { PROBES, SHAPES } from "../methods/shortrow/probes";
 
   let {
     colourOf,
@@ -130,7 +130,7 @@
 
   function loadProbe(event: Event) {
     const select = event.currentTarget as HTMLSelectElement;
-    const probe = PROBES.find((p) => p.id === select.value);
+    const probe = [...SHAPES, ...PROBES].find((p) => p.id === select.value);
     select.value = "";
     if (probe) rows = probe.grid.split("\n").map((l) => [...toLetters(l)]);
   }
@@ -278,8 +278,13 @@
       <label>
         <span>Start from</span>
         <select onchange={loadProbe}>
-          <option value="">a probe…</option>
-          {#each PROBES as p (p.id)}<option value={p.id}>{p.id} {p.name}</option>{/each}
+          <option value="">a shape…</option>
+          <optgroup label="Shapes this app is for">
+            {#each SHAPES as p (p.id)}<option value={p.id}>{p.id} {p.name}</option>{/each}
+          </optgroup>
+          <optgroup label="Old probes (regression tests)">
+            {#each PROBES as p (p.id)}<option value={p.id}>{p.id} {p.name}</option>{/each}
+          </optgroup>
         </select>
       </label>
     </div>

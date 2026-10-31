@@ -174,6 +174,35 @@ drawing.
 
 The old intarsia-type probes stay as quiet regression tests only.
 
+**Done 2026-10-31:** 17 shapes, S1–S17, in `probes.ts` (`SHAPES`), and in the
+Draw tab's "Start from" list. Look them over and redraw any that aren't how
+you'd draw such a shape. Baseline with today's builder (tested in
+`construct.test.ts`):
+
+| Shape | Builds as drawn? | Rounding | Draw the look | Intarsia |
+|---|---|---|---|---|
+| S1 stripe | yes, 2 balls | – | exact | 2 balls |
+| S2 short stripe from an edge | yes, 2 balls, 6 turns | – | exact | 3 |
+| S3 wedge | yes, 2 balls, 10 turns | – | exact | 3 |
+| S4 leaning stripe | yes, 2 balls, 14 turns | – | 10 cells off | 3 |
+| S5 fish with a tail | stuck (col 6) | doesn't help | fails | 4 |
+| S6 zigzag band | stuck (col 5) | doesn't help | 8 cells off | 8 |
+| S7 oval | stuck (col 4) | 4 changes | 4 cells off | 3 |
+| S8 teardrop | yes, 3 balls, 4 turns | – | exact | 3 |
+| S9 leaf | yes, 2 balls, 14 turns | – | 2 cells off | 7 |
+| S10 wave band | yes, 4 balls, 10 turns | – | 2 cells off | 8 |
+| S11 blob at the edge | stuck (col 5) | 2 changes | 2 cells off | 3 |
+| S12 two blobs side by side | stuck (col 2) | doesn't help | 4 cells off | 5 |
+| S13 blob inside a blob | stuck (col 3) | doesn't help | 11 cells off | 5 |
+| S14 your nested triangles | yes, 4 balls, 25 turns | – | 18 cells off | 7 |
+| S15 your blob, two colours inside | stuck (col 7) | 2 changes | 10 cells off | 8 |
+| S16 your fish | stuck (col 11) | doesn't help | fails | 7 |
+| S17 your T | yes, but all hand-overs: 5 balls, 0 turns | – | exact | 5 |
+
+Read: 8 of 17 can't be built as drawn; 2 can't be built at all in "draw the
+look"; the T builds but isn't short-row colorwork. "Cells off" is where the
+predicted look differs from the drawing.
+
 **Step 2 — The units.** Each knitted the book's way, with a few settings
 (width, height, steps, position), and each knowing its stitch plan and
 predicted look:
@@ -198,8 +227,9 @@ named; what you'll get; differences marked clearly, with the colour you drew
 still visible; softening offered as a choice with its ball and turn count (the
 T); a blob that fits no unit marked on the drawing, not only named in a message.
 
-**Open question:** when stitches are added to soften a shape, must they be the
-shape's own colour, or can the background give way too?
+**Softening (L19):** every version is shown side by side — the shape grows into
+the background, the background gives way into the shape, a mix, and the shape
+left as drawn — each with its balls, ends and turns. You pick.
 
 ---
 
@@ -259,8 +289,8 @@ short-row colorwork).
 | L15 | A drawing can be knitted several ways that look different | ask: side by side, you pick | later (F3) |
 | L16 | Bending and flatness are guesses | fine: labelled a prediction | built |
 | L17 | Carrying a yarn across the back to start a stitch or two away | allowed up to 2 stitches; an exact start preferred | built |
-| L18 | A shape running from cast-on to top splits the background: each side needs its own ball (the T; a peak reaching the top) | **yours to make** — as L7? | built: counted as L7 |
-| L19 | Softening a shape with extra stitches so it knits with short rows instead of hand-overs (the T) | **yours to make** — ask, as L12? And must added stitches be the shape's colour? | planned (§6, steps 3–4) |
+| L18 | A shape running from cast-on to top splits the background: each side needs its own ball (the T; a peak reaching the top) | as L7: allowed, fewest ends, shown (decided 2026-10-31) | built: counted as L7 |
+| L19 | Softening a shape with extra stitches so it knits with short rows instead of hand-overs (the T) | ask, showing **every** version side by side, each with its balls, ends and turns: the shape grows, the background gives way, a mix, and unsoftened (decided 2026-10-31) | planned (§6, steps 3–4) |
 
 **Probes.** The 18 drawings of Stage E live in `src/methods/shortrow/probes.ts`,
 each asking one question — P1 full-width band, P2 band from the edge, P3 gentle

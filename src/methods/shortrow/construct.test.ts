@@ -4,7 +4,7 @@ import { knitIntarsia } from "./intarsia";
 import { roundForShortRows } from "./round";
 import { steepEdges, roundSteep } from "./steep";
 import { parseGrid, type Grid } from "./grid";
-import { PROBES } from "./probes";
+import { PROBES, SHAPES } from "./probes";
 import { writeRows } from "./writer";
 import { readWritten } from "./written";
 import { simulate } from "./passes";
@@ -164,6 +164,20 @@ describe("the probes", () => {
       expect(built.strands.length, probe.id).toBeLessThanOrEqual(knitIntarsia(grid).strands.length + extra);
     }
   });
+});
+
+describe("the shapes this app is for: the baseline before units (PLAN.md §6)", () => {
+  // Today's builder, as it stands on 2026-10-31: these knit as drawn; the rest
+  // must say where they're stuck rather than build something wrong. Units are
+  // meant to move shapes from the second list to the first.
+  const KNIT = ["S1", "S2", "S3", "S4", "S8", "S9", "S10", "S14", "S17"];
+  for (const shape of SHAPES) {
+    it(`${shape.id} ${shape.name}`, () => {
+      const { grid, built } = check(shape.grid);
+      if (KNIT.includes(shape.id)) expectKnitsAsDrawn(grid, built);
+      else expect(built.passes).toEqual([]);
+    });
+  }
 });
 
 describe("rounding, where turns would crowd (PLAN.md §8, L13)", () => {
