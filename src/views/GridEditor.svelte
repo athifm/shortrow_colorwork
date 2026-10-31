@@ -231,12 +231,14 @@
 
   const WAY_NAME: Record<Way, string> = {
     "as drawn": "As drawn",
+    nudged: "Nudged",
     grow: "The shape grows",
     "give way": "The background gives way",
     both: "Either way, fewest changes",
   };
   const WAY_HINT: Record<Way, string> = {
     "as drawn": "Every stitch as you drew it.",
+    nudged: "As drawn, with a stitch or two moved where two turns would land on one stitch.",
     grow: "Stitches added in the shape's colour, none taken away.",
     "give way": "Stitches taken from the shape, none added.",
     both: "Added or taken, whichever changes the fewest stitches.",

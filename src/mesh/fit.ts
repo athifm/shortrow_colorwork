@@ -1,12 +1,14 @@
 /**
  * The ways to knit a drawing with short-row units — PLAN.md §6, step 3, and
- * the softening versions of L19, side by side: the drawing as it is, and
- * fitted to units three ways — the shape grows, the background gives way, or
- * both. Each is knitted for real, counted (balls, ends, turns) and given the
- * full prediction of its look, so you can pick.
+ * the softening versions of L19, side by side: the drawing as it is; nudged,
+ * a stitch or two moved where turns would crowd (L13), when it can't be
+ * knitted as it is; and fitted to units three ways — the shape grows, the
+ * background gives way, or both. Each is knitted for real, counted (balls,
+ * ends, turns) and given the full prediction of its look, so you can pick.
  */
 import { simulate, type Yarn } from "../methods/shortrow/passes";
 import { knitShortRows, type Built } from "../methods/shortrow/construct";
+import { roundForShortRows } from "../methods/shortrow/round";
 import { turnsOf } from "../methods/shortrow/rules";
 import { colourOfStrand } from "../methods/shortrow/writer";
 import { fitUnits, type Softening, type Unit } from "../methods/shortrow/units";
@@ -15,7 +17,7 @@ import type { Grid } from "../methods/shortrow/grid";
 import { lookOf } from "./look";
 import type { Physics } from "./convert";
 
-export type Way = "as drawn" | Softening;
+export type Way = "as drawn" | "nudged" | Softening;
 
 export interface Version {
   way: Way;
@@ -62,7 +64,12 @@ function version(way: Way, drawing: Grid, plan: Grid, units: Unit[], built: Buil
 
 /** The drawing as it is, then fitted to units each of three ways. */
 export function versionsOf(drawing: Grid, physics: Physics): Version[] {
-  const out: Version[] = [version("as drawn", drawing, drawing, [], knitShortRows(drawing), physics)];
+  const drawn = knitShortRows(drawing);
+  const out: Version[] = [version("as drawn", drawing, drawing, [], drawn, physics)];
+  if (drawn.problems.length > 0 && drawn.stuck) {
+    const rounded = roundForShortRows(drawing);
+    if (rounded) out.push(version("nudged", drawing, rounded.grid, [], rounded.built, physics));
+  }
   for (const softening of ["grow", "give way", "both"] as Softening[]) {
     // The strict fit first; the looser one, nearer the drawing, if the
     // builder can't knit the strict one.
