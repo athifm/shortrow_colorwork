@@ -11,7 +11,7 @@ import { knitShortRows, type Built } from "../methods/shortrow/construct";
 import { roundForShortRows } from "../methods/shortrow/round";
 import { turnsOf } from "../methods/shortrow/rules";
 import { colourOfStrand } from "../methods/shortrow/writer";
-import { fitUnits, type Softening, type Unit } from "../methods/shortrow/units";
+import { blobsOf, fitUnits, type Softening, type Unit } from "../methods/shortrow/units";
 import type { Change } from "../methods/shortrow/round";
 import type { Grid } from "../methods/shortrow/grid";
 import { lookOf } from "./look";
@@ -24,8 +24,9 @@ export interface Version {
   /** What to knit, and where it differs from the drawing. */
   plan: Grid;
   changed: Change[];
-  /** The units found, when fitted. */
+  /** The units found, when fitted, and the cells of any blob no unit fits. */
   units: Unit[];
+  unfitted: { ridge: number; column: number }[];
   built: Built;
   /** Counts, when it knits. */
   turns: number;
@@ -43,9 +44,17 @@ const differences = (a: Yarn[][], b: Yarn[][]): Change[] => {
   return out;
 };
 
-function version(way: Way, drawing: Grid, plan: Grid, units: Unit[], built: Built, physics: Physics): Version {
+function version(
+  way: Way,
+  drawing: Grid,
+  plan: Grid,
+  units: Unit[],
+  built: Built,
+  physics: Physics,
+  unfitted: Version["unfitted"] = [],
+): Version {
   const changed = differences(plan.cells, drawing.cells);
-  if (built.problems.length > 0) return { way, plan, changed, units, built, turns: 0, balls: 0, look: null, mismatch: [] };
+  if (built.problems.length > 0) return { way, plan, changed, units, unfitted, built, turns: 0, balls: 0, look: null, mismatch: [] };
   const endsInTurn = turnsOf(built.passes, plan.width);
   const fabric = simulate(plan.width, built.passes);
   const look = lookOf(fabric, built.passes, { ...physics, endsInTurn }, colourOfStrand)?.cells ?? null;
@@ -54,6 +63,7 @@ function version(way: Way, drawing: Grid, plan: Grid, units: Unit[], built: Buil
     plan,
     changed,
     units,
+    unfitted,
     built,
     turns: endsInTurn.filter(Boolean).length,
     balls: built.strands.length,
@@ -80,7 +90,11 @@ export function versionsOf(drawing: Grid, physics: Physics): Version[] {
       if (!chosen || built.problems.length === 0) chosen = { fitted, built };
       if (built.problems.length === 0) break;
     }
-    const v = version(softening, drawing, chosen!.fitted.plan, chosen!.fitted.units, chosen!.built, physics);
+    const { fitted, built } = chosen!;
+    const unfitted = blobsOf(drawing)
+      .blobs.filter((b) => fitted.unfitted.includes(b.id))
+      .flatMap((b) => b.cells.map((at) => ({ ridge: Math.floor(at / drawing.width), column: (at % drawing.width) + 1 })));
+    const v = version(softening, drawing, fitted.plan, fitted.units, built, physics, unfitted);
     const twin = out.find((o) => o.changed.length === v.changed.length && differences(o.plan.cells, v.plan.cells).length === 0);
     if (twin) v.sameAs = twin.sameAs ?? twin.way;
     out.push(v);

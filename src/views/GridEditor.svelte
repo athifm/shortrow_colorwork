@@ -398,6 +398,14 @@
             />
           {/each}
         {/each}
+        <!-- The way picked: a shape no unit fits, outlined, and where it gets stuck, ringed. -->
+        {#each chosen && !stale ? chosen.unfitted : [] as u (`u${u.ridge},${u.column}`)}
+          <rect class="unfit" x={(width - u.column) * CELL + 1.5} y={(height - 1 - u.ridge) * CELL + 1.5} width={CELL - 3} height={CELL - 3} />
+        {/each}
+        {#if chosen && !stale && chosen.built.stuck}
+          {@const st = chosen.built.stuck}
+          <circle class="stuck" cx={(width - st.column) * CELL + CELL / 2} cy={(height - 1 - st.ridge) * CELL + CELL / 2} r={CELL * 0.75} />
+        {/if}
         {#each needle && !stale ? (shortRows?.changed ?? []) : [] as ch (`${ch.ridge},${ch.column}`)}
           {@const x = (width - ch.column) * CELL}
           {@const y = (height - 1 - ch.ridge) * CELL}
@@ -440,10 +448,20 @@
                 onclick={() => (wayPick = { key: worked.key, way: v.way })}
               >
                 {@render thumb(v.plan.cells, v.changed)}
-                <strong>{WAY_NAME[v.way]}{v.way === suggested ? " (suggested)" : ""}</strong>
+                <strong>{WAY_NAME[v.way]}{v.way === suggested && knits(v) ? " (suggested)" : ""}</strong>
                 <span>{WAY_HINT[v.way]}{twins.length > 0 ? ` The same as: ${twins.join(", ")}.` : ""}</span>
                 {#if !knits(v)}
-                  <span class="bad">Can't be knitted with short rows yet.</span>
+                  <span class="bad">
+                    Can't be knitted with short rows yet{v.built.stuck
+                      ? ` — stuck at column ${v.built.stuck.column}, ridge ${v.built.stuck.ridge + 1}` +
+                        (chosen?.way === v.way ? " (ringed on your drawing)" : "")
+                      : ""}.
+                  </span>
+                  {#if v.unfitted.length > 0}
+                    <span class="bad">
+                      A shape fits no unit{chosen?.way === v.way ? " (outlined on your drawing)" : ""}; left as drawn.
+                    </span>
+                  {/if}
                 {:else}
                   <span>
                     {v.changed.length} {v.changed.length === 1 ? "stitch changes" : "stitches change"} ·
@@ -770,6 +788,19 @@
   }
   .changed {
     pointer-events: none;
+  }
+  .unfit,
+  .stuck {
+    fill: none;
+    stroke: var(--bad);
+    pointer-events: none;
+  }
+  .unfit {
+    stroke-width: 1.5;
+    stroke-dasharray: 3 2;
+  }
+  .stuck {
+    stroke-width: 2;
   }
   .changed rect:last-child {
     stroke: var(--ink);
