@@ -30,12 +30,17 @@ a stitch is wide, so the drawing grid's cells come out roughly square.
 | Cost | none beyond the yarn already there | an enclosed shape needs extra balls: 2 ends each |
 | Limit | can't be vertical: turning in the same column every time stacks turns (rule 1) | each piece needs a yarn waiting at its edge |
 
-**Your principle (2026-10-24): which way to make each edge.** Straight vertical
-edges are **intarsia** — hand-overs. Short-row colorwork is only essential where an
-edge curves across the fabric, making the "lumpy" curvature in the horizontal
-direction. So the constructor chooses per edge: intarsia for vertical edges and
-thin vertical lines, turns for curves and slopes, and intarsia again once a slope
-is too steep for turns.
+**Your principle: which way to make each edge** (2026-10-24, made stricter the
+same day). **Intarsia is used only for vertical lines and edges.** Every edge in a
+drawing is one of three kinds:
+
+| Edge | How it's knitted |
+|---|---|
+| **Horizontal** — colour changes from one ridge to the next | nothing special: change yarn at the row |
+| **Vertical** | intarsia (hand-overs) — and *only* here |
+| **Sloped or curved** | short rows, always — fitted from templates of shapes we know how to knit (PLAN.md §9, F2) |
+
+Intarsia is not a fallback for shapes that don't fit a template.
 
 **A claim to prove in F:** any grid made of whole ridges can be knitted somehow,
 if enough hand-overs are allowed. If that holds, nothing drawn is truly
@@ -65,9 +70,10 @@ if enough hand-overs are allowed. If that holds, nothing drawn is truly
 | L8 | A shape with a hole (a ring) | Inside and outside each need their own yarn | — | as L7 |
 | L9 | Shapes of one colour touching only at a corner | Probably two separate yarns | — | as L7 |
 | L10 | A thin vertical line, 1–2 stitches | A hand-over on every ridge, both sides | ask: thicken, or accept the ends | **intarsia**: thin vertical lines are plain intarsia, ends counted |
-| L11 | A fine texture — checkerboard, dots | A yarn change for nearly every cell | redraw (or simplify automatically) | **auto with intarsia**, ends counted |
-| L12 | A steep diagonal, steeper than a stitch per ridge | Turns crowd one column (rule 1) | auto: stagger; it gets slightly jagged | **auto: switch to intarsia** once a diagonal is too steep for turns |
+| L11 | A fine texture — checkerboard, dots | A yarn change for nearly every cell | redraw (or simplify automatically) | **intarsia — because a texture like a checkerboard is only vertical and horizontal edges**, ends counted |
+| L12 | A steep diagonal, steeper than a stitch per ridge | Turns crowd one column (rule 1) | auto: stagger; it gets slightly jagged | **ask each time**: show it rounded to the steepest short-row slope and snapped to vertical (intarsia), and you choose (changed 2026-10-24 from "switch to intarsia") |
 | L13 | Turn-built edges come in steps of whole stitches; a zigzag needs steps of at least 2 | The in-and-out turns must not land on each other | auto: round the edge to the nearest allowed step | **auto**: nearest allowed steps, knitted edge shown over the drawing |
+| L17 | Carrying a yarn a short way across the back, so it starts a stitch or two from where it stopped | Saves a new ball every time an edge shifts — intarsia does this routinely; the book never needs it | — | **allowed up to 2 stitches** (decided 2026-10-24); an exact start is always preferred |
 
 ### How it will look (the preview)
 

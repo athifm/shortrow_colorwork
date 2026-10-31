@@ -16,6 +16,7 @@
   import NeedleChart from "./views/NeedleChart.svelte";
   import FabricView from "./views/FabricView.svelte";
   import DesignPanel from "./views/DesignPanel.svelte";
+  import GridEditor from "./views/GridEditor.svelte";
   import { settle, describeShape } from "./mesh/settle";
   import {
     yarnPull,
@@ -35,6 +36,11 @@
     C: "#2e7d6b",
     D: "#e0a526",
     E: "#4f5fbf",
+    F: "#7b5ea7",
+    G: "#d2691e",
+    H: "#3a7ca5",
+    I: "#8c9e3a",
+    J: "#5d4037",
   };
   const SPARE = ["#7b5ea7", "#d2691e", "#3a7ca5", "#8c9e3a"];
 
@@ -367,6 +373,19 @@
       onmake={(rows, n) => {
         text = rows;
         stitches = n;
+        loaded = null;
+        hovered = null;
+        hoveredExact = null;
+      }}
+    />
+
+    <GridEditor
+      {colourOf}
+      onknit={(rows, n) => {
+        text = rows;
+        stitches = n;
+        // A drawn grid is the whole piece, not a repeat.
+        repeats = 1;
         loaded = null;
         hovered = null;
         hoveredExact = null;

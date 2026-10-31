@@ -36,6 +36,16 @@ export type Column = number;
  * A written row in a pattern can hold several passes. "K41, SR, K16, SR, …" is
  * a zigzag of shrinking passes in one yarn, and each leg is its own pass here.
  */
+/**
+ * How far a yarn may be carried across the back to start where it's needed:
+ * up to two stitches from where it was left (LIMITS.md L17, decided
+ * 2026-10-24). Everyday intarsia does this when an edge moves diagonally. The
+ * book's patterns never need it — every yarn there starts exactly where it
+ * stopped — and where a yarn is waiting exactly in place, that's always
+ * preferred.
+ */
+export const MAX_CARRY = 2;
+
 export interface Pass {
   yarn: Yarn;
   from: Column;
@@ -63,6 +73,9 @@ export interface Fabric {
   /** Every stitch at the same height. The textbook's central rule: a pattern
    *  that ends a repeat unbalanced pulls up and stretches. */
   balanced: boolean;
+  /** Passes that started a stitch or two from where their yarn was waiting,
+   *  the yarn carried across the back (allowed up to MAX_CARRY). */
+  carries: { pass: number; distance: number }[];
   problems: Problem[];
 }
 
@@ -82,11 +95,12 @@ export interface Fabric {
  * could sensibly have worked. A pass that starts somewhere its yarn isn't is
  * reported and then worked anyway, because the stitches it covers are real.
  */
-export function simulate(stitches: number, passes: readonly Pass[]): Fabric {
+export function simulate(stitches: number, passes: readonly Pass[], maxCarry: number = MAX_CARRY): Fabric {
   const heights: number[] = Array.from({ length: stitches }, () => 0);
   const stacks: Yarn[][] = Array.from({ length: stitches }, () => []);
   const madeBy: number[][] = Array.from({ length: stitches }, () => []);
   const problems: Problem[] = [];
+  const carries: Fabric["carries"] = [];
 
   // Where each yarn is waiting. Yarns are not carried across the back, so a
   // yarn stays exactly where its last pass ended, and the next pass in that yarn
@@ -112,13 +126,18 @@ export function simulate(stitches: number, passes: readonly Pass[]): Fabric {
 
     const waiting = waitingAt.get(pass.yarn);
     if (waiting !== undefined && waiting !== pass.from) {
-      problems.push({
-        pass: number,
-        message:
-          `Yarn ${pass.yarn} is waiting at column ${waiting}, ` +
-          `but this pass starts at column ${pass.from}. ` +
-          `Yarns aren't carried, so it can only start where it stopped.`,
-      });
+      const distance = Math.abs(waiting - pass.from);
+      if (distance <= maxCarry) {
+        carries.push({ pass: number, distance });
+      } else {
+        problems.push({
+          pass: number,
+          message:
+            `Yarn ${pass.yarn} is waiting at column ${waiting}, ` +
+            `but this pass starts at column ${pass.from}. ` +
+            `A yarn can only start where it stopped, or carried at most ${maxCarry} stitches across the back.`,
+        });
+      }
     }
 
     const low = Math.min(pass.from, pass.to);
@@ -134,5 +153,5 @@ export function simulate(stitches: number, passes: readonly Pass[]): Fabric {
 
   const balanced = heights.every((h) => h === heights[0]);
 
-  return { stitches, heights, stacks, madeBy, balanced, problems };
+  return { stitches, heights, stacks, madeBy, balanced, carries, problems };
 }

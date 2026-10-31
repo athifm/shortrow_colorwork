@@ -43,8 +43,10 @@ export function stackedTurns(fabric: Fabric, passes: readonly Pass[], endsInTurn
       if (endsInTurn[p] && passes[p]?.to === column && col[r + 1] === p + 1) starts.push({ row: r, pass: p });
     });
     for (let k = 0; k + 1 < starts.length; k++) {
-      // The lower double stitch fills rows r and r+1; the upper starts right at r+2.
-      if (starts[k + 1].row === starts[k].row + 2) {
+      // The lower double stitch fills rows r and r+1; the upper starts right at
+      // r+2 — or even at r+1, when a single stitch is worked between two turns
+      // and the second turn is made on the double stitch itself.
+      if (starts[k + 1].row <= starts[k].row + 2) {
         found.push({ column, row: starts[k + 1].row + 1, passes: [starts[k].pass + 1, starts[k + 1].pass + 1] });
       }
     }

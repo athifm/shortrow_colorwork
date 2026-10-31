@@ -912,10 +912,79 @@ constructor.
 
 | Step | What |
 |---|---|
-| **E** | **The limitations list, and probe grids** — in [LIMITS.md](LIMITS.md) — **done 2026-10-24**: all 16 limitations marked by you. Key decisions: up to 10 colours; unlimited yarn ends but always the fewest possible, with a cut-off set at the end of the project; you set the gauge; and **straight vertical edges are intarsia** (hand-overs) — short rows are only essential where an edge curves across the fabric. When a grid can be knitted several ways, the app shows them side by side and you pick. Draft the hard and soft limits from what's proven, and a set of small test grids — a diagonal, a circle, two touching blobs, a vertical bar, a ring, a checkerboard, a single dot — each aimed at one question. You mark each limit: fine / adjust automatically / adjust and ask / redraw. This list is the spec for F. |
-| **F** | **Construct from any grid** — the real inverse. Regions of colour → passes, strands, catch-ups, following E's rules and reporting what it adjusted or refused. Check: given the grid a Stage C design produces, it finds an equally good pattern. |
+| **E** | **The limitations list, and probe grids** — in [LIMITS.md](LIMITS.md) — **done 2026-10-24**: all 16 limitations marked by you. Key decisions: up to 10 colours; unlimited yarn ends but always the fewest possible, with a cut-off set at the end of the project; you set the gauge; and **intarsia only on vertical edges** (hand-overs); sloped and curved edges are always short rows, and horizontal edges are a change of yarn. When a grid can be knitted several ways, the app shows them side by side and you pick. Draft the hard and soft limits from what's proven, and a set of small test grids — a diagonal, a circle, two touching blobs, a vertical bar, a ring, a checkerboard, a single dot — each aimed at one question. You mark each limit: fine / adjust automatically / adjust and ask / redraw. This list is the spec for F. |
+| **F** | **Construct from any grid** — the real inverse. In three parts: **F1** a baseline that knits any grid with intarsia alone — **done 2026-10-24**, it knits all 18 probes correctly, proving that anything drawn in whole ridges can be knitted; the cost is yarn, cheap on vertical edges and high wherever an edge moves sideways (P3 diagonal 6 balls, P7 lens 7, where the book uses 2). With **short carries allowed (up to 2 stitches, your decision)** the cost drops sharply: the diagonal from 6 balls to 2, the lens and circle from 7 to 3, the checkerboard from 14 to 8 — and the book's patterns are untouched. **F2** short rows on every sloped or curved edge, and intarsia only on vertical ones — the fused plan below, **done 2026-10-24**. **F3** where both work, show them side by side for you to pick. Regions of colour → passes, strands, catch-ups, following E's rules and reporting what it adjusted or refused. Check: given the grid a Stage C design produces, it finds an equally good pattern. |
 | **G** | **Rasterize** — canvas pixels to a stitch grid at the knitter's gauge (two rows to a stitch's width in garter), with clean-up of specks and ragged edges. |
 | **H** | **Draw on a canvas** — the end goal. |
+
+#### F2: the fused plan (agreed 2026-10-24)
+
+The old F2 idea was a *library of shapes* (lens, peak, leaf, wedge). The
+newer idea was *a rule per edge*. They are fused: edges decide the method,
+and the shapes become shortcuts and tests.
+
+**1. Sort every edge of every colour region** (your rule, LIMITS.md):
+
+| Edge | How it's knitted |
+|---|---|
+| Horizontal | change yarn at that row |
+| Vertical | intarsia hand-over — **only** here |
+| Sloped or curved | short rows, always; intarsia is not a fallback |
+
+A slope steeper than short rows can make: ask each time, showing the steepest
+short-row slope next to snapping it to vertical (L12).
+
+**2. One recipe per edge kind:**
+
+- **horizontal change** — the new yarn starts across the row; a base shared by
+  several colours is handed over side by side in one row, as in Shoal row 7;
+- **vertical hand-over** — today's F1 intarsia, for that edge only;
+- **one-sided slope** — short-row pairs from one side (the Wedge), step ≥ 1;
+- **two-sided slope (peak)** — a zigzag turning one stitch further in each
+  time, alternating sides, then home (the Shoal construction,
+  `zigzagTurns`). No column turns twice, so it can step **1 stitch per ridge**;
+- **shrink then grow (lens, circle)** — turns come back out past earlier ones,
+  so steps must be **at least 2** stitches to keep rule 1.
+
+**3. Build regions inside out.** Knit the innermost region first; each
+enclosing colour's zigzag goes wider and climbs over it; the background levels
+the top with catch-up pairs from both edges (Stage B). Colours nest like
+brackets (rule 3). Every result goes through the existing checks: reader,
+rules, shape verdict, writer.
+
+**4. Named shapes** — lens, peak, leaf, wedge — stay as ready-made recipes
+and as tests: given the grid of a Stage C design, F2 must find a pattern as
+good as the design's.
+
+**Build order — all done 2026-10-24** (`construct.ts`, `round.ts`, `steep.ts`,
+in the grid editor's "Knit it"):
+
+1. Two-sided peak. **Done**: your three nested triangles knit with 4 balls
+   (intarsia alone: 7), every colour out and home once; green's passes are
+   exactly the sketch. Lies flat as a rectangle.
+2. Several peaks nested, plus the background catch-up. **Done**: any depth of
+   nesting; a 60 × 40 drawing of five nested peaks builds in about 30 ms. A
+   colour cut in two by a shape reaching the top gets a second ball, knitted
+   inside that shape's trip.
+3. One-sided slopes, then shrink-then-grow. **Done**: slopes against an edge
+   are catch-up pairs (P3, 2 balls). A lens whose top and bottom step out at the
+   same stitch can't be turned as drawn — two turns would share a stitch — so
+   it's **rounded** (L13): P7 moves 4 stitches and knits with 2 balls
+   (intarsia: 3). The moved stitches are outlined over the drawing.
+4. Mixed regions. **Done**: a vertical edge 2 ridges or taller cuts the
+   patches either side into one-ridge pieces, each its own trip — so they hand
+   over like intarsia, inside the same tree of trips. A ball can be lent to a
+   nested piece when it comes back within a short carry. **All 18 probes now
+   build**, each with no more balls than intarsia alone except the circle (P8,
+   one more — worth improving).
+5. The steep-slope question (L12). **Done**: an edge moving steadily one way,
+   slower than a stitch per ridge, shows both ways side by side — snapped to
+   vertical (as drawn, hand-overs) or rounded to a stitch per ridge (short
+   rows) — and "Knit it" waits for your pick, every time. Only P4 among the
+   probes.
+
+Still to look at: the circle's extra ball; colours that wrap round another
+(a C shape) are handled only where the probes needed it.
 
 A first entry for the list, already known: you draw in *picture* space, but
 construction works in *stitch-and-row* space, and knitted ridges bend between
@@ -929,8 +998,12 @@ relaxed preview shows it.
 
 ### Also outstanding
 
-- **You:** knit the Wedge and Bump examples — it would turn four guesses in §2.4
-  into measurements; the book's title and author; more book pages, especially
-  where turns are close together.
-- **Me:** check whether GitHub Pages is switched on. The latest commit is local
+- **Me:** check whether GitHub Pages is switched on. The latest commits are local
   only until you say push.
+
+### Last todo: calibrate the parameters
+
+After everything else. Knit test pieces — the Wedge and Bump examples, a test
+stripe — and measure them, to turn the guesses in §2.4 (ridge bend, double-stitch
+stiffness, smallest bump, won't-lie-flat stretch) into measured values. Until
+then the app labels its predicted look as a prediction.

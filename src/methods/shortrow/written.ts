@@ -25,7 +25,7 @@
  *    waiting, the knitter must be using another strand of it — another ball or
  *    bobbin, and two more ends to weave in. That gets said, not hidden.
  */
-import type { Column, Pass, Yarn } from "./passes";
+import { MAX_CARRY, type Column, type Pass, type Yarn } from "./passes";
 
 export type Side = "RS" | "WS";
 
@@ -186,6 +186,13 @@ export function readWritten(text: string, stitches: number, repeats = 1): Writte
         const sameColour = strands.filter((s) => s.colour === c);
         const waiting = sameColour.find((s) => waitingAt.get(s.id) === start);
         if (waiting) return waiting.id;
+        // Not exactly in place: a yarn of this colour within a short carry
+        // across the back will do (MAX_CARRY), nearest first.
+        const near = sameColour
+          .map((s) => ({ s, d: Math.abs((waitingAt.get(s.id) ?? Infinity) - start) }))
+          .filter(({ d }) => d <= MAX_CARRY && d > 0)
+          .sort((a, b) => a.d - b.d)[0];
+        if (near) return near.s.id;
 
         const id = sameColour.length === 0 ? c : `${c}${sameColour.length + 1}`;
         strands.push({ id, colour: c, joinedAt: start, row: row.number, repeat });

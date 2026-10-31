@@ -75,14 +75,23 @@ describe("a stripe missing its catch-up row", () => {
 });
 
 describe("yarns wait where they stopped", () => {
-  it("objects to a pass that starts somewhere its yarn isn't", () => {
+  it("objects to a pass that starts further from its yarn than a short carry", () => {
     const fabric = simulate(10, [
       { yarn: "B", from: 1, to: 7 },
-      { yarn: "B", from: 5, to: 1 }, // B is at 7, not 5
+      { yarn: "B", from: 4, to: 1 }, // B is at 7: three stitches away, more than a carry
     ]);
     expect(fabric.problems).toHaveLength(1);
     expect(fabric.problems[0].pass).toBe(2);
     expect(fabric.problems[0].message).toMatch(/waiting at column 7/);
+  });
+
+  it("allows a short carry across the back, and records it", () => {
+    const fabric = simulate(10, [
+      { yarn: "B", from: 1, to: 7 },
+      { yarn: "B", from: 5, to: 1 }, // two stitches from where B stopped
+    ]);
+    expect(fabric.problems).toEqual([]);
+    expect(fabric.carries).toEqual([{ pass: 2, distance: 2 }]);
   });
 
   it("lets a yarn's first pass start anywhere, since it's only just joined", () => {
@@ -105,9 +114,9 @@ describe("yarns wait where they stopped", () => {
   it("still works the misplaced pass, so the rest of the fabric can be seen", () => {
     const fabric = simulate(10, [
       { yarn: "B", from: 1, to: 7 },
-      { yarn: "B", from: 5, to: 1 },
+      { yarn: "B", from: 4, to: 1 },
     ]);
-    expect(fabric.heights.slice(0, 5)).toEqual([2, 2, 2, 2, 2]);
+    expect(fabric.heights.slice(0, 4)).toEqual([2, 2, 2, 2]);
   });
 });
 
