@@ -170,7 +170,7 @@ describe("the shapes this app is for: the baseline before units (PLAN.md §6)", 
   // Today's builder, as it stands on 2026-10-31: these knit as drawn; the rest
   // must say where they're stuck rather than build something wrong. Units are
   // meant to move shapes from the second list to the first.
-  const KNIT = ["S1", "S2", "S3", "S4", "S8", "S9", "S10", "S12", "S14", "S17"];
+  const KNIT = ["S1", "S2", "S3", "S4", "S6", "S8", "S9", "S10", "S12", "S14", "S17"];
   for (const shape of SHAPES) {
     it(`${shape.id} ${shape.name}`, () => {
       const { grid, built } = check(shape.grid);

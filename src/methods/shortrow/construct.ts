@@ -753,10 +753,45 @@ function regionsOf(grid: Grid): { regionOf: number[][]; regions: Region[] } {
     }
   }
 
+  // Shapes that are one run of their colour in every column — a band, a
+  // lens, any short-row unit (units.ts) — never split at a fork: one ball
+  // knits them in layers, every pass right across, each column's rows
+  // landing at its own height. (Not the background, cast-on to top: that
+  // goes round the shapes, and does split.)
+  const patchOf = cells.map((row) => row.map(() => -1));
+  const oneRun: boolean[] = [];
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < N; c++) {
+      if (patchOf[r][c] !== -1) continue;
+      const id = oneRun.length;
+      const stack: [number, number][] = [[r, c]];
+      patchOf[r][c] = id;
+      const runs = new Map<number, number[]>();
+      while (stack.length > 0) {
+        const [rr, cc] = stack.pop()!;
+        runs.set(cc, [...(runs.get(cc) ?? []), rr]);
+        for (const [nr, nc] of [
+          [rr + 1, cc],
+          [rr - 1, cc],
+          [rr, cc + 1],
+          [rr, cc - 1],
+        ]) {
+          if (nr < 0 || nr >= H || nc < 0 || nc >= N || patchOf[nr][nc] !== -1 || cells[nr][nc] !== cells[r][c]) continue;
+          patchOf[nr][nc] = id;
+          stack.push([nr, nc]);
+        }
+      }
+      const all = [...runs.values()].flat();
+      const shape = Math.min(...all) > 0 || Math.max(...all) < H - 1;
+      oneRun.push(shape && [...runs.values()].every((rs) => Math.max(...rs) - Math.min(...rs) + 1 === rs.length));
+    }
+  }
+
   const joined = (r: number, c: number, nr: number, nc: number): boolean => {
     if (cells[nr][nc] !== cells[r][c]) return false;
     if (nr === r) return true;
     if (sliced[r][c] || sliced[nr][nc]) return false;
+    if (oneRun[patchOf[r][c]]) return true;
     return nr > r ? !forks(r, c) : !forks(nr, nc);
   };
 
