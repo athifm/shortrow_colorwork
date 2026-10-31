@@ -989,7 +989,75 @@ Still to look at: the circle's extra ball; colours that wrap round another
 A first entry for the list, already known: you draw in *picture* space, but
 construction works in *stitch-and-row* space, and knitted ridges bend between
 the two — so the knitted result won't look exactly like the drawing. Soft; the
-relaxed preview shows it.
+relaxed preview shows it. **Superseded by "Draw the look" below.**
+
+### Draw the look: from picture to needle (decided 2026-10-30)
+
+**The point of the app:** you draw how the *finished, relaxed fabric* should
+look, and the app finds the knitting that bends into it. Until now a grid was
+read literally — each cell a stitch and a ridge on the needle — so the knitted
+fabric looked different from the drawing once its ridges bent, and shapes like
+P7's lens needed rounding. The book does it the other way round: it knits a
+lens as a plain peak and lets the bending make the curve.
+
+**The key observation.** In fabric that lies flat as a rectangle, columns stay
+upright: bending only moves rows up and down within their own column. It never
+moves a colour sideways or changes the order of colours in a column. So for
+every column, the drawing and the needle plan have the same colours in the same
+order, bottom to top; only how many ridges each colour gets differs. The whole
+conversion is: **choose the ridges of each colour in each column**, so that
+once knitted and relaxed, every colour boundary lands where it was drawn.
+
+**The approach — guess, predict, correct, repeat:**
+
+1. Start with the drawing read literally.
+2. Predict where each colour boundary ends up after bending.
+3. Compare with the drawing. Where a boundary lands too high, give the colour
+   below it fewer ridges in that column; too low, more.
+4. Keep it knittable while correcting: every column the same total length,
+   whole ridges, and neighbouring columns differing by at most one ridge per
+   colour, so turns never crowd.
+5. Repeat until the boundaries stop moving; then build the final plan with the
+   F2 builder, relax it with the full preview, and show what's left of the
+   mismatch.
+
+Early guesses may not be buildable yet, and the full preview needs a built
+plan, so step 2 uses a **quick predictor** working from the column counts
+alone: each colour patch's rows want to sit level across its columns, against
+each column's rows wanting to sit one above another — the same two pulls as
+mesh/relax.ts, at patch level. The builder and the full preview are the final
+check.
+
+**Decided with you (2026-10-30):**
+
+1. Aim for a rectangle — balanced fabric — always, for now. Fans and wedges
+   are a later option.
+2. One drawing cell is one stitch wide and one ridge tall, for now. Your gauge
+   (G) can change that later.
+3. When the look can't be matched exactly, get as close as possible and
+   outline the differences on the drawing — no question asked.
+4. Keep "draw the needle" — today's literal reading — as an advanced switch.
+   The builder's tests use it.
+
+**Build order:**
+
+| Step | What |
+|---|---|
+| **L1** | **Plan → look.** Render a knitted plan's relaxed fabric back onto the drawing's grid: for each cell, the colour that fills most of it. Useful at once — the editor can show "what you'll get" beside the drawing, even before any conversion exists. |
+| **L2** | **The quick predictor**, checked against the full preview on the existing examples and probes. |
+| **L3** | **The conversion**: guess, predict, correct, repeat, within the knittable limits. |
+| **L4** | **Round-trip tests.** Take plans known to be good — the book-way Lens, the nested triangles — render their looks, convert the looks back into plans, and check the new plans make the same looks. The test that matters most: a drawn lens comes back as a peak, like the book's. |
+| **L5** | **The editor loop.** Three views side by side: your drawing, the predicted look at the same scale, and the needle chart with written rows. Where the predicted look differs from the drawing, the cells are outlined on it. "Draw the needle" stays as an advanced switch. |
+| **L6** | **Re-read the probes as looks**, and update LIMITS.md: rounding (L13) mostly gives way to this. |
+
+**What changes elsewhere:** the F2 builder becomes the back end — it no longer
+reads the drawing directly, but the plan the conversion makes. G (rasterize)
+then turns a drawing into a *look* grid, not a needle grid. Rounding's fixes
+(rounding never creating a vertical edge; avoiding edits altogether) are on
+hold, likely overtaken by this.
+
+**The limit:** the conversion is only as good as the bending prediction, which
+rests on the guesses in §2.4. The app keeps labelling its result a prediction.
 
 ### Later (planned separately)
 
