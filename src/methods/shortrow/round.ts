@@ -57,7 +57,7 @@ export function roundForShortRows(grid: Grid): Rounded | null {
 
 function roundIn(grid: Grid, order: Kind[]): Rounded | null {
   let current = grid;
-  let built = knitShortRows(current);
+  let built = knitShortRows(current, { recipes: "first" });
   const changed: Change[] = [];
   const limit = grid.width + grid.height;
 
@@ -72,7 +72,7 @@ function roundIn(grid: Grid, order: Kind[]): Rounded | null {
       // Never undo a change already made: that way lies going round in circles.
       if (changed.some((c) => c.ridge === change.ridge && c.column === change.column)) continue;
       const next = withChange(current, change);
-      const tried = knitShortRows(next);
+      const tried = knitShortRows(next, { recipes: "first" });
       if (tried.problems.length === 0) {
         best = { grid: next, built: tried, change };
         break;

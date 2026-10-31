@@ -25,6 +25,11 @@
  *  - **fill from the edges** (a valley, like the background over a motif):
  *    catch-up pairs from each edge (Stage B), with a full row to cross between.
  *
+ * Where those don't fit as asked, the zigzag and bumps are tried again with
+ * the columns that could take more rows raised to suit them (`bridged`,
+ * `smoothed`) — the background under two shapes side by side, say — and the
+ * bumps also on the way home.
+ *
  * Which rows of a colour come before a nested colour and which after is fixed by
  * the picture: rows underneath it come first, rows on top of it after. Rows
  * beside it can go either way; the builder tries the simple choices, checks
@@ -98,7 +103,9 @@ const clone = (s: State): State => ({
 class Refused extends Error {}
 
 
-export function knitShortRows(grid: Grid): Built {
+/** `recipes: "first"` tries only the recipes as they were first written —
+ *  quicker to give up, for searches that build many drawings (round.ts). */
+export function knitShortRows(grid: Grid, { recipes = "all" }: { recipes?: "all" | "first" } = {}): Built {
   const N = grid.width;
   const H = grid.height;
   const { regionOf, regions } = regionsOf(grid);
@@ -263,7 +270,7 @@ export function knitShortRows(grid: Grid): Built {
       }
 
       let shapes = 0;
-      for (const shape of walks(min, max, phaseStart(i), phaseEnd(i), N)) {
+      for (const shape of walks(min, max, phaseStart(i), phaseEnd(i), N, recipes === "all")) {
         shapes++;
         const s2 = clone(s);
         try {
@@ -363,7 +370,7 @@ export function knitShortRows(grid: Grid): Built {
  * its last pass runs left from some turn. In between, it goes left and comes
  * back right: a zigzag, or a fill from the edges.
  */
-function* walks(min: number[], max: number[], from: End, to: End, N: number): Generator<{ from: Column; to: Column }[]> {
+function* walks(min: number[], max: number[], from: End, to: End, N: number, all: boolean): Generator<{ from: Column; to: Column }[]> {
   const fits = (got: number[]) => got.every((g, i) => g >= min[i] && g <= max[i]);
   const cover = (passes: { from: Column; to: Column }[]) => {
     const got = min.map(() => 0);
@@ -385,19 +392,102 @@ function* walks(min: number[], max: number[], from: End, to: End, N: number): Ge
   const pres = from.heading === "right" ? range(from.at, 1).map((t) => ({ pre: [{ from: from.at, to: t }], a: t })) : [{ pre: [], a: from.at }];
   const posts = to.heading === "left" ? range(to.at, 1).map((t) => ({ post: [{ from: t, to: to.at }], b: t })) : [{ post: [], b: to.at }];
 
-  for (const { pre, a } of pres) {
-    for (const { post, b } of posts) {
-      const used = cover([...pre, ...post]);
-      const lo = min.map((m, i) => m - used[i]);
-      const hi = max.map((m, i) => m - used[i]);
-      if (hi.some((h) => h < 0)) continue;
-      for (const middle of [zigzag(lo, a, b, N), bumps(lo, a, b, N), ...edgeFills(lo, hi, a, b, N)]) {
-        if (!middle) continue;
-        const all = [...pre, ...middle, ...post];
-        if (fits(cover(all))) yield all;
+  // The recipes as they were first, through every start and end; then the
+  // same with free columns raised, and a plain turn — so a drawing that
+  // knits the first way keeps it.
+  const offered = new Set<string>();
+  for (const extra of all ? [false, true] : [false]) {
+    for (const { pre, a } of pres) {
+      for (const { post, b } of posts) {
+        const used = cover([...pre, ...post]);
+        const lo = min.map((m, i) => m - used[i]);
+        const hi = max.map((m, i) => m - used[i]);
+        if (hi.some((h) => h < 0)) continue;
+        const middles = extra
+          ? [
+              ...[bridged(lo, hi, 2), bridged(lo, hi, 0), smoothed(lo, hi, a)].flatMap((w) => [zigzag(w, a, b, N), bumps(w, a, b, N, true)]),
+              // Nothing in between: just turn — when all that's needed is to
+              // get from one hand-over to the next.
+              a === b ? [] : null,
+            ]
+          : [zigzag(lo, a, b, N), bumps(lo, a, b, N), ...edgeFills(lo, hi, a, b, N)];
+        for (const middle of middles) {
+          if (!middle) continue;
+          const all = [...pre, ...middle, ...post];
+          // Several recipes often come to the same walk: offer it once.
+          const key = all.map((p) => `${p.from}>${p.to}`).join(" ");
+          if (offered.has(key) || !fits(cover(all))) continue;
+          offered.add(key);
+          yield all;
+        }
       }
     }
   }
+}
+
+/**
+ * The rows wanted, with columns that may take more raised where that saves
+ * stacking turns. A layer can't end in a cliff: its end column, with nothing
+ * beyond, would turn twice for every two ridges. So a free column beside a
+ * cliff takes rows to step down a ridge at a time; a free column at the edge
+ * of the fabric joins the layer beside it (a turn there is only the end of a
+ * row); and a free column in a dip one stitch wide is filled, or the layer
+ * either side of it would be a bump one stitch wide. With `drop` 0, free
+ * columns come up level with the layer instead: its turns then move out past
+ * them — out from under a shape's tip, say, where the shape turns too.
+ */
+function bridged(lo: number[], hi: number[], drop: number): number[] {
+  const w = lo.map((x) => Math.max(0, x));
+  const n = w.length;
+  // As far towards `to` as the column may go, in whole ridges.
+  const raise = (i: number, to: number) => {
+    let v = Math.min(to, hi[i]);
+    if ((to - v) % 2 !== 0) v--;
+    if (v > w[i]) {
+      w[i] = v;
+      return true;
+    }
+    return false;
+  };
+  for (let changed = true; changed; ) {
+    changed = false;
+    if (n > 1) changed = raise(0, w[1]) || changed;
+    if (n > 1) changed = raise(n - 1, w[n - 2]) || changed;
+    for (let i = 0; i < n; i++) {
+      const l = i > 0 ? w[i - 1] : 0;
+      const r = i + 1 < n ? w[i + 1] : 0;
+      if (i > 0 && i + 1 < n) changed = raise(i, Math.min(l, r)) || changed;
+      changed = raise(i, Math.max(l, r) - drop) || changed;
+    }
+  }
+  return w;
+}
+
+/**
+ * The most rows each column may take now, from `a` on — up to the highest
+ * any column needs — then brought down a ridge at a time beside lower columns, so no layer ends in a cliff. For a
+ * patch of colour that won't be reachable later — the floor under a second
+ * shape, beyond the first.
+ */
+function smoothed(lo: number[], hi: number[], a: Column): number[] {
+  const floor = lo.map((x) => Math.max(0, x));
+  // No higher than the highest floor this stretch has to lay anyway.
+  const cap = Math.max(...floor);
+  const w = hi.map((h, i) => (i + 1 >= a ? Math.max(floor[i], Math.min(h, cap)) : floor[i]));
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (let i = 0; i < w.length; i++) {
+      const l = i > 0 ? w[i - 1] : Infinity;
+      const r = i + 1 < w.length ? w[i + 1] : Infinity;
+      let v = Math.max(floor[i], Math.min(w[i], Math.min(l, r) + 2));
+      if ((w[i] - v) % 2 !== 0) v++;
+      if (v < w[i]) {
+        w[i] = v;
+        changed = true;
+      }
+    }
+  }
+  return w;
 }
 
 /**
@@ -464,18 +554,26 @@ function zigzag(want: number[], a: Column, b: Column, N: number): { from: Column
  * it, turn, back over it, turn, and on — two more rows on just those stitches.
  * Bumps on bumps the same way, in the other direction. A bump one stitch wide
  * would need two turns on that one stitch, which rule 1 refuses: that's where
- * rounding comes in (L13).
+ * rounding comes in (L13). `homeward`: bumps also between home and the start,
+ * on the way home — the near side finished last, after the far side.
  */
-function bumps(want: number[], a: Column, b: Column, N: number): { from: Column; to: Column }[] | null {
-  if (b > a) return null;
-  for (let c = 1; c < a; c++) if (want[c - 1] > (c >= b ? 1 : 0)) return null;
+function bumps(want: number[], a: Column, b: Column, N: number, homeward = false): { from: Column; to: Column }[] | null {
+  // Coming home short of the start (b > a) leaves the columns between with
+  // the one row of the way out: only when bumps are also made homeward.
+  if (b > a && !homeward) return null;
+  for (let c = 1; c < a; c++) if (want[c - 1] > (c >= b ? (homeward ? Infinity : 1) : 0)) return null;
   const level = (c: Column) => (c >= a && c <= N ? Math.ceil(Math.max(0, want[c - 1]) / 2) : 0);
   const own = range(a, N).filter((c) => level(c) > 0);
   if (own.length === 0) return null;
   const far = Math.max(...own);
   // Columns crossed on the way, wanting nothing of their own, get the two
-  // rows of the way out and back.
-  const lev = (c: Column) => (c >= a && c <= far ? Math.max(1, level(c)) : 0);
+  // rows of the way out and back. Columns between home and the start are
+  // crossed once, on the way home; bumps there add two rows each, the same.
+  const lev = (c: Column) => {
+    if (c >= a && c <= far) return Math.max(1, level(c));
+    if (c >= b && c < a) return Math.max(1, Math.ceil((Math.max(0, want[c - 1]) + 1) / 2));
+    return 0;
+  };
 
   /** Runs of columns between lo and hi at level j or more, lowest first. */
   const runs = (j: number, lo: Column, hi: Column): [Column, Column][] => {
