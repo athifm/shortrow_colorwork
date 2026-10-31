@@ -35,6 +35,6 @@ describe("versions", () => {
   // them with short rows. The rest are the next work.
   it("has a short-row way for most of the shapes", () => {
     const knits = SHAPES.filter((s) => versionsOf(shape(s.id), physics).some((v) => v.built.problems.length === 0 && v.turns > 0)).map((s) => s.id);
-    expect(knits).toEqual(["S2", "S3", "S4", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15"]);
+    expect(knits).toEqual(["S2", "S3", "S4", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17"]);
   });
 });

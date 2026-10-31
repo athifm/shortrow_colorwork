@@ -108,7 +108,7 @@ class Refused extends Error {}
 export function knitShortRows(grid: Grid, { recipes = "all" }: { recipes?: "all" | "first" } = {}): Built {
   const N = grid.width;
   const H = grid.height;
-  const { regionOf, regions } = regionsOf(grid);
+  const { regionOf, regions } = regionsOf(grid, recipes === "all");
   const rowRegion = (c: Column, row: number) => (row < 2 * H ? regionOf[Math.floor(row / 2)][c - 1] : -1);
 
   // The attempt that got furthest, and why it stopped: what's reported.
@@ -680,7 +680,7 @@ function edgeFills(lo: number[], hi: number[], a: Column, b: Column, N: number):
  * is long finished, so it can't lead one ball from branch to branch. Branches
  * that join again higher up stay one patch: a full row can cross there.
  */
-function regionsOf(grid: Grid): { regionOf: number[][]; regions: Region[] } {
+function regionsOf(grid: Grid, cutWraps: boolean): { regionOf: number[][]; regions: Region[] } {
   const { width: N, height: H, cells } = grid;
 
   // Runs of one colour along each ridge, and which of them fork upwards.
@@ -787,57 +787,96 @@ function regionsOf(grid: Grid): { regionOf: number[][]; regions: Region[] } {
     }
   }
 
+  // Levels a patch is cut at: no joining a stitch to the one below it.
+  const cut = cells.map((row) => row.map(() => false));
+
   const joined = (r: number, c: number, nr: number, nc: number): boolean => {
     if (cells[nr][nc] !== cells[r][c]) return false;
     if (nr === r) return true;
     if (sliced[r][c] || sliced[nr][nc]) return false;
+    if (cut[Math.max(r, nr)][c]) return false;
     if (oneRun[patchOf[r][c]]) return true;
     return nr > r ? !forks(r, c) : !forks(nr, nc);
   };
 
-  const regionOf = cells.map((row) => row.map(() => -1));
-  const regions: Region[] = [];
-  for (let r = 0; r < H; r++) {
-    for (let c = 0; c < N; c++) {
-      if (regionOf[r][c] !== -1) continue;
-      const id = regions.length;
-      const colour = cells[r][c];
-      const stack: [number, number][] = [[r, c]];
-      regionOf[r][c] = id;
-      let home = c + 1;
-      let homeRidge = r;
-      while (stack.length > 0) {
-        const [rr, cc] = stack.pop()!;
-        if (cc + 1 < home || (cc + 1 === home && rr < homeRidge)) {
-          home = cc + 1;
-          homeRidge = rr;
+  const build = () => {
+    const regionOf = cells.map((row) => row.map(() => -1));
+    const regions: Region[] = [];
+    for (let r = 0; r < H; r++) {
+      for (let c = 0; c < N; c++) {
+        if (regionOf[r][c] !== -1) continue;
+        const id = regions.length;
+        const colour = cells[r][c];
+        const stack: [number, number][] = [[r, c]];
+        regionOf[r][c] = id;
+        let home = c + 1;
+        let homeRidge = r;
+        while (stack.length > 0) {
+          const [rr, cc] = stack.pop()!;
+          if (cc + 1 < home || (cc + 1 === home && rr < homeRidge)) {
+            home = cc + 1;
+            homeRidge = rr;
+          }
+          for (const [dr, dc] of [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ]) {
+            const nr = rr + dr;
+            const nc = cc + dc;
+            if (nr < 0 || nr >= H || nc < 0 || nc >= N) continue;
+            if (regionOf[nr][nc] !== -1 || !joined(rr, cc, nr, nc)) continue;
+            regionOf[nr][nc] = id;
+            stack.push([nr, nc]);
+          }
         }
-        for (const [dr, dc] of [
-          [1, 0],
-          [-1, 0],
-          [0, 1],
-          [0, -1],
-        ]) {
-          const nr = rr + dr;
-          const nc = cc + dc;
-          if (nr < 0 || nr >= H || nc < 0 || nc >= N) continue;
-          if (regionOf[nr][nc] !== -1 || !joined(rr, cc, nr, nc)) continue;
-          regionOf[nr][nc] = id;
-          stack.push([nr, nc]);
-        }
+        regions.push({ id, colour, home, homeRidge, parent: null, children: [] });
       }
-      regions.push({ id, colour, home, homeRidge, parent: null, children: [] });
+    }
+    for (const region of regions) {
+      if (region.home > 1) region.parent = regionOf[region.homeRidge][region.home - 2];
+      else if (region.homeRidge > 0) region.parent = regionOf[region.homeRidge - 1][0];
+      if (region.parent !== null) regions[region.parent].children.push(region.id);
+    }
+    // Nested colours in the order they're reached: lowest first, then rightmost.
+    for (const region of regions) {
+      region.children.sort((x, y) => regions[x].homeRidge - regions[y].homeRidge || regions[x].home - regions[y].home);
+    }
+    return { regionOf, regions };
+  };
+
+  // A patch that wraps round something not nested inside it — below it and
+  // above it in one column, like the background beside a T's crossbar, under
+  // its tip and over it — would need the thing in between both before and
+  // after its one trip. So it's cut in two at that level: the part below
+  // knitted before, the part above after, each a trip of its own. (Not for
+  // `recipes: "first"`, which keeps to the patches as first worked out.)
+  for (let tries = 0; cutWraps && tries <= N * H; tries++) {
+    const { regionOf, regions } = build();
+    const inside = (x: number, y: number): boolean => {
+      for (let at: number | null = y; at !== null; at = regions[at].parent) if (at === x) return true;
+      return false;
+    };
+    let level: { region: number; ridge: number } | null = null;
+    for (let c = 0; c < N && !level; c++) {
+      for (let r = 1; r < H && !level; r++) {
+        const x = regionOf[r][c];
+        if (regionOf[r - 1][c] === x) continue;
+        // The start of a run of x: is there more of x lower down, with
+        // something between that isn't inside x?
+        let k = r - 1;
+        while (k >= 0 && regionOf[k][c] !== x) k--;
+        if (k < 0) continue;
+        for (let g = k + 1; g < r; g++) if (!inside(x, regionOf[g][c])) level = { region: x, ridge: r };
+      }
+    }
+    if (!level) return { regionOf, regions };
+    for (let c = 0; c < N; c++) {
+      if (regionOf[level.ridge][c] === level.region && regionOf[level.ridge - 1][c] === level.region) cut[level.ridge][c] = true;
     }
   }
-  for (const region of regions) {
-    if (region.home > 1) region.parent = regionOf[region.homeRidge][region.home - 2];
-    else if (region.homeRidge > 0) region.parent = regionOf[region.homeRidge - 1][0];
-    if (region.parent !== null) regions[region.parent].children.push(region.id);
-  }
-  // Nested colours in the order they're reached: lowest first, then rightmost.
-  for (const region of regions) {
-    region.children.sort((x, y) => regions[x].homeRidge - regions[y].homeRidge || regions[x].home - regions[y].home);
-  }
+  const { regionOf, regions } = build();
   return { regionOf, regions };
 }
 

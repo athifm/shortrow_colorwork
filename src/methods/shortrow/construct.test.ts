@@ -8,7 +8,8 @@ import { PROBES, SHAPES } from "./probes";
 import { writeRows } from "./writer";
 import { readWritten } from "./written";
 import { simulate } from "./passes";
-import { stackedTurns } from "./rules";
+import { stackedTurns, turnsOf } from "./rules";
+import { fitUnits } from "./units";
 
 /**
  * Stage F2: short rows on sloped edges (PLAN.md §5, "the fused plan"). Every
@@ -250,5 +251,19 @@ describe("your blob with two colours inside (2026-10-25)", () => {
     const rounded = roundForShortRows(grid)!;
     expect(rounded.changed.length).toBeLessThanOrEqual(2);
     expectKnitsAsDrawn(rounded.grid, rounded.built);
+  });
+});
+
+describe("your T (2026-10-30), softened (PLAN.md §8, L18 and L19)", () => {
+  // The crossbar reaches the top, so the background beside it wraps round
+  // its tip: below it and above it. Cut in two, each part its own trip.
+  it("knits with short rows once fitted to a unit, written out and read back", () => {
+    const { grid } = check(SHAPES.find((s) => s.id === "S17")!.grid);
+    for (const softening of ["grow", "give way", "both"] as const) {
+      const fitted = fitUnits(grid, softening);
+      const built = knitShortRows(fitted.plan);
+      expectKnitsAsDrawn(fitted.plan, built);
+      expect(turnsOf(built.passes, grid.width).filter(Boolean).length, softening).toBeGreaterThan(0);
+    }
   });
 });
