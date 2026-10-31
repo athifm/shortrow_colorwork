@@ -1,5 +1,5 @@
 /**
- * Knitting any grid with intarsia alone — the baseline of Stage F (PLAN.md §9).
+ * Knitting any grid with intarsia alone — the baseline of Stage F (PLAN.md §5).
  *
  * Every ridge is two rows: a right-side row from column 1 across to the left
  * edge, and a wrong-side row back. Along the right-side row, each run of colour
@@ -7,14 +7,14 @@
  * hands over to the next yarn on the next stitch. On the way back each yarn
  * works its own run again, home to where it began. No turns at all.
  *
- * That keeps the rules of §9 by construction:
+ * That keeps the rules of §5 by construction:
  *  - no turns, so no turn can sit on another (rule 1);
  *  - the needle never jumps: each run starts on the stitch after the last
  *    (rule 2);
  *  - every yarn goes out and comes back within the ridge, ending where it
  *    started (rule 3).
  *
- * So any grid of whole ridges can be knitted this way — the claim LIMITS.md
+ * So any grid of whole ridges can be knitted this way — the claim PLAN.md §8
  * asked F to prove. The price is yarn: a run needs a yarn of its colour waiting
  * at its first stitch, or within a short carry across the back (two stitches,
  * MAX_CARRY). When a run starts further than that from any yarn of its colour —

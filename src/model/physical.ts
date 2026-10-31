@@ -61,7 +61,7 @@ export type Confidence =
    *  a pattern photo, a paused video frame. Real evidence, but softer than
    *  `measured`: their gauge and conditions were never ours to control, and the
    *  extraction (counting stitches off a photo) has its own error. See
-   *  PLAN.md §2.5 and research/observations.md, which is where the citation in
+   *  PLAN.md §3 and research/observations.md, which is where the citation in
    *  `source` should point. */
   | "documented"
   /** Reasoned from geometry, never checked against anything real. */
@@ -131,7 +131,7 @@ export const flarePerShortRowPair = relation<WedgeInput, number>({
   describes: "Angle the fabric opens for one short-row pair, in radians",
   category: "ours",
   confidence: "derived",
-  source: "Geometry, reasoned while writing PLAN.md §2.2. Never knitted.",
+  source: "Geometry, reasoned while writing PLAN.md §2. Never knitted.",
   since: "2026-08-09",
   settledBy:
     "M1: one wedge of known span and pair count. Measure the angle between its two straight edges.",
@@ -172,7 +172,7 @@ export const rowHeightNearTurn = relation<
  *
  * We have no hypothesis at all here — three is a number chosen so that the
  * planner has something to run against, and for no better reason. This is the
- * single least trustworthy value in the file, and §2.5 of PLAN.md explains why
+ * single least trustworthy value in the file, and §3 of PLAN.md explains why
  * the join is the part of the model most likely to be wrong.
  */
 export const steepestJoinStep = relation<

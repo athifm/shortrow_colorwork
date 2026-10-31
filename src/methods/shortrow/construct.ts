@@ -1,5 +1,5 @@
 /**
- * Knitting a grid with short rows — Stage F2 of PLAN.md §9, "the fused plan".
+ * Knitting a grid with short rows — Stage F2 of PLAN.md §5, "the fused plan".
  *
  * Every patch of one colour (a region) is knitted by one ball in one trip: the
  * ball comes in at the patch's right-hand end, works its way over it with
@@ -30,7 +30,7 @@
  * beside it can go either way; the builder tries the simple choices, checks
  * every result against the rules, and keeps the first that passes.
  *
- * Straight vertical edges are intarsia's (LIMITS.md): there the patches either
+ * Straight vertical edges are intarsia's (PLAN.md §1): there the patches either
  * side are cut into one-ridge pieces, each its own short trip, so the colours
  * hand over at the edge ridge after ridge — the same tree of trips, no special
  * case. A ball can be lent to a nested piece when it comes back within a short
@@ -52,7 +52,7 @@ export interface Built extends Knitted {
   /** Why it couldn't be built, if it couldn't. Empty when it worked. */
   problems: string[];
   /** When it failed because two turns had to share a stitch: where — the
-   *  place a rounding of the drawing could help (LIMITS.md L13). */
+   *  place a rounding of the drawing could help (PLAN.md §8, L13). */
   stuck?: { column: Column; ridge: number; colour: Yarn };
   /** How far the best attempt got, in passes: more is closer. */
   reached: number;
@@ -298,7 +298,7 @@ export function knitShortRows(grid: Grid): Built {
   }
 
   /** Rule 1, and the edge rule — a turn never sits on a straight vertical
-   *  edge, which is intarsia's (LIMITS.md) — checked as the pattern grows, so a
+   *  edge, which is intarsia's (PLAN.md §1) — checked as the pattern grows, so a
    *  bad choice is dropped early. */
   const checkTurns = (s: State) => {
     const fabric = simulate(N, s.passes);
@@ -631,7 +631,7 @@ function regionsOf(grid: Grid): { regionOf: number[][]; regions: Region[] } {
     return apart;
   };
   // Straight vertical edges: two colours side by side, unchanged, for two
-  // ridges or more. Those are intarsia's (LIMITS.md), so the runs either side
+  // ridges or more. Those are intarsia's (PLAN.md §1), so the runs either side
   // become one-ridge patches of their own — each its own short trip, handing
   // over at the edge, ridge after ridge.
   const sliced = cells.map((row) => row.map(() => false));

@@ -18,7 +18,7 @@
  * Each round, every stitch is nudged towards where its neighbours want it,
  * until nothing moves any more. Only heights move: balanced fabric doesn't fan
  * out, so columns stay upright. The cast-on edge is held flat, and so is the
- * top edge when the fabric balances (PLAN.md §2.2).
+ * top edge when the fabric balances (PLAN.md §2).
  *
  * How hard each pull is lives in model/physical — these are guesses to be fitted
  * against real fabric, and nothing here hard-codes them.

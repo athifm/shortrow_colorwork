@@ -1,6 +1,6 @@
 /**
  * The calibration workbench — a page in the repository that is not part of the
- * app. See PLAN.md §3.6.
+ * app. See PLAN.md §3.
  *
  * What it will do, at M1:
  *   1. Print the instructions for a test piece.

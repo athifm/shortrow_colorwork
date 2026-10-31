@@ -1,6 +1,6 @@
 /**
  * A picture as the fabric will hold it: a grid of cells, one stitch wide and one
- * ridge (two rows) tall (LIMITS.md: "a drawing's pixel").
+ * ridge (two rows) tall (PLAN.md §1).
  *
  * Written as text, the way you'd draw it: one line per ridge, top of the fabric
  * first; the first character of a line is the left edge — the last column —
@@ -9,7 +9,7 @@
  *   `.`  background, yarn A
  *   `#`  motif, yarn B
  *   `o`  a third colour, yarn C
- *   a letter A–J stands for that yarn — up to ten colours (LIMITS.md, L3).
+ *   a letter A–J stands for that yarn — up to ten colours (PLAN.md §8, L3).
  */
 import type { Column, Yarn } from "./passes";
 

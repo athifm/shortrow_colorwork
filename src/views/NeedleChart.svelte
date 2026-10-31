@@ -3,7 +3,7 @@
   the textbook draws its charts. Column 1 is at the right-hand edge. Each cell
   shows its yarn's colour and which way the needle was travelling; ∞ marks a turn.
 
-  This is construction space (PLAN.md §2.1). It is *not* a picture of the fabric:
+  This is construction space (PLAN.md §2). It is *not* a picture of the fabric:
   a line near the top may sit, in the finished piece, beside one near the bottom.
   That's what the fabric view is for.
 -->

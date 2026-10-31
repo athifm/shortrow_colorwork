@@ -11,7 +11,7 @@ import { simulate } from "./passes";
 import { stackedTurns } from "./rules";
 
 /**
- * Stage F2: short rows on sloped edges (PLAN.md §9, "the fused plan"). Every
+ * Stage F2: short rows on sloped edges (PLAN.md §5, "the fused plan"). Every
  * pattern built is written out, read back as a knitter would, and checked cell
  * by cell against the drawing and against the rules.
  */
@@ -166,7 +166,7 @@ describe("the probes", () => {
   });
 });
 
-describe("rounding, where turns would crowd (LIMITS.md L13)", () => {
+describe("rounding, where turns would crowd (PLAN.md §8, L13)", () => {
   it("rounds the lens a few stitches, and the rounding knits", () => {
     const { grid } = check(PROBES.find((p) => p.id === "P7")!.grid);
     const rounded = roundForShortRows(grid);
@@ -183,7 +183,7 @@ describe("rounding, where turns would crowd (LIMITS.md L13)", () => {
   });
 });
 
-describe("steep diagonals: you choose (LIMITS.md L12)", () => {
+describe("steep diagonals: you choose (PLAN.md §8, L12)", () => {
   it("finds the steep diagonal, and nothing else among the probes", () => {
     const steep = PROBES.filter((p) => steepEdges(check(p.grid).grid).length > 0).map((p) => p.id);
     expect(steep).toEqual(["P4"]);

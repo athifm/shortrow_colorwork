@@ -2,7 +2,7 @@
  * Writing passes back out as a pattern's written rows — the reverse of
  * written.ts.
  *
- * The app thinks in passes: one trip of the needle in one yarn (PLAN.md §9). A
+ * The app thinks in passes: one trip of the needle in one yarn (PLAN.md §5). A
  * knitter reads written rows, which group passes: "Row 8: (B) K41, SR, K16, SR,
  * …" is thirteen of them. Generated patterns need writing out, and the test of
  * a writer is simple: read back what it wrote, and the passes must come out

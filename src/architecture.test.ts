@@ -28,7 +28,7 @@ function stripCommentsAndStrings(code: string): string {
 }
 
 describe("the planner holds no physics of its own", () => {
-  // PLAN.md §2.4: any planner line that wants to know how far a wedge flares
+  // PLAN.md §3: any planner line that wants to know how far a wedge flares
   // asks `model/physical`. The rule dies the first time somebody inlines a 0.7
   // at eleven at night, so it is checked rather than trusted.
   //
@@ -60,7 +60,7 @@ describe("the planner holds no physics of its own", () => {
 
 describe("development-only code cannot reach the shipped app", () => {
   // The calibration workbench and the model page are ours, not the user's
-  // (PLAN.md §3.6). They stay out of the production bundle because nothing the
+  // (PLAN.md §3). They stay out of the production bundle because nothing the
   // app builds ever imports them — which holds only as long as that is true, so
   // here it is checked.
   it("is never imported by anything outside src/dev", () => {

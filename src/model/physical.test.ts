@@ -40,7 +40,7 @@ describe("the model's bookkeeping", () => {
   });
 
   it("does not let a value claim to be documented without naming a source", () => {
-    // Same idea, one tier down (PLAN.md §2.5): a "documented" value should
+    // Same idea, one tier down (PLAN.md §3): a "documented" value should
     // point at a citation id from research/observations.md, not just assert
     // that one exists.
     for (const r of MODEL.filter((r) => r.confidence === "documented")) {
@@ -54,7 +54,7 @@ describe("the model's bookkeeping", () => {
   it("keeps everything ours until we know enough to hand it over", () => {
     // Not a law — the categories are expected to move as the model settles, and
     // when one does, this test is what makes us notice and think about it rather
-    // than let it slip through. See PLAN.md §2.4.
+    // than let it slip through. See PLAN.md §3.
     for (const r of MODEL) {
       expect(r.category, `${r.id} changed category — was that deliberate?`).toBe("ours");
     }
@@ -66,7 +66,7 @@ describe("the model's bookkeeping", () => {
 });
 
 describe("flare per short-row pair", () => {
-  // The *form* of this relation is a guess (PLAN.md §2.4), so there is little
+  // The *form* of this relation is a guess (PLAN.md §3), so there is little
   // point asserting particular angles. What is worth pinning down is the
   // behaviour any replacement should still have — if a future version breaks one
   // of these, it is far more likely to be a bug than a discovery.

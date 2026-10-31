@@ -1,6 +1,6 @@
 /**
  * Rules a pattern must keep beyond counting — checked on every pattern,
- * whether generated, typed in, or from the book (PLAN.md §9).
+ * whether generated, typed in, or from the book (PLAN.md §5).
  *
  * Rule 1: no turning stitch directly on top of another. A turn leaves a German
  * double stitch: the last stitch worked, slipped and stretched to fill the

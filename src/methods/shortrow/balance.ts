@@ -1,6 +1,6 @@
 /**
  * Catch-up rows: levelling the fabric with short-row pairs from the edges
- * (PLAN.md §9, Stage B).
+ * (PLAN.md §5, Stage B).
  *
  * After a motif, some columns have fewer rows than others. The background yarn
  * evens them out the way the textbook does: out from an edge, turn, back to the
@@ -17,7 +17,7 @@
  *    from that edge. Short columns in the middle, with full ones either side,
  *    can't be reached from either edge.
  *
- * The rules of §9 are kept. Every pair goes out and comes back (rule 3), so the
+ * The rules of §5 are kept. Every pair goes out and comes back (rule 3), so the
  * yarn ends at an edge. No two pairs turn in the same column one directly on the
  * other (rule 1): when the shortfall asks for that — the same length twice — one
  * pair is moved in by `step` stitches, and the small unevenness that leaves is

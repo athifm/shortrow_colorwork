@@ -6,7 +6,7 @@ import { readWritten } from "../methods/shortrow/written";
 import { PRESETS } from "../presets";
 
 /**
- * One drawing for balanced and unbalanced patterns alike (PLAN.md §2.2). The
+ * One drawing for balanced and unbalanced patterns alike (PLAN.md §2). The
  * examples here are our own; the textbook's are checked the same way,
  * privately, in research/.
  */

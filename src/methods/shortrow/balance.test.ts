@@ -7,7 +7,7 @@ import { writeRows } from "./writer";
 import { PRESETS } from "../../presets";
 
 /**
- * Catch-up rows (PLAN.md §9, Stage B). Our own examples here; the textbook's
+ * Catch-up rows (PLAN.md §5, Stage B). Our own examples here; the textbook's
  * catch-ups are rebuilt privately in research/ — the solver reproduces the
  * pairs of all fourteen groups in the book's five patterns.
  */

@@ -4,7 +4,7 @@ import { simulate, type Pass } from "./passes";
 /**
  * Patterns here are small ones invented for the tests, not the textbook's. The
  * book's own patterns are checked privately in research/ — committing them row by
- * row would be republishing them (PLAN.md §7).
+ * row would be republishing them (PLAN.md §4).
  *
  * The shape is the textbook's, though: a background yarn A, a motif yarn B that
  * works a short stripe from the right edge and turns, and a catch-up short row in
@@ -49,7 +49,7 @@ describe("a balanced stripe", () => {
   it("counts the turning stitch in both passes either side of the turn", () => {
     // Column 7 is where B turns. With a German short row it becomes a double
     // stitch that fills the return row too — the working assumption (PLAN.md
-    // §2.4) under which the textbook's patterns balance.
+    // §3) under which the textbook's patterns balance.
     expect(fabric.stacks[7 - 1]).toEqual(["A", "B", "B", "A", "A", "A"]);
   });
 });

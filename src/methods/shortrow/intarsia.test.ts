@@ -8,10 +8,10 @@ import { simulate } from "./passes";
 import { stackedTurns } from "./rules";
 
 /**
- * The claim LIMITS.md asked Stage F to prove: any grid of whole ridges can be
+ * The claim Stage F set out to prove (PLAN.md §8): any grid of whole ridges can be
  * knitted, given enough intarsia. Every probe is knitted, written out as rows,
  * read back as a knitter would, and the fabric checked cell by cell against the
- * drawing — and against the rules of PLAN.md §9.
+ * drawing — and against the rules of PLAN.md §5.
  */
 
 describe("every probe knits with intarsia alone", () => {

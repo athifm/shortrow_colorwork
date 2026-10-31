@@ -1,5 +1,5 @@
 /**
- * Designing a pattern: one motif on a background (PLAN.md §9, Stage C).
+ * Designing a pattern: one motif on a background (PLAN.md §5, Stage C).
  *
  * The first step from "what I want" to "how to knit it". You describe a motif;
  * this writes the whole repeat — base rows, the motif, the catch-ups — as
@@ -18,7 +18,7 @@
  * with one-stitch steps there is no gap for them to sit in. With no steps at all
  * the motif is a stripe: out, turn, home.
  *
- * Around it, the background yarn keeps the rules of §9. It knits up to the motif
+ * Around it, the background yarn keeps the rules of §5. It knits up to the motif
  * and hands over mid-row, takes back over when the motif yarn comes home, and
  * every trip ends where it began (rule 3) — so the repeat starts again exactly
  * where it started, and the motif yarn waits at `start` for the next repeat.

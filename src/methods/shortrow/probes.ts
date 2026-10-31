@@ -1,7 +1,9 @@
 /**
- * The probe grids of LIMITS.md, as data: small drawings, each asking one
- * question of the grid constructor (PLAN.md §9, Stage F). Copied from LIMITS.md;
- * keep the two in step.
+ * The probe grids of Stage E: small drawings, each asking one question of the
+ * grid constructor (PLAN.md §8). This file is their only copy. `.` is the
+ * background (A), `#` the motif (B), `o` a third colour (C); each character is
+ * one stitch by one ridge; the top line is the top of the fabric, and the right
+ * end of a line is column 1, where knitting starts.
  */
 export interface Probe {
   id: string;

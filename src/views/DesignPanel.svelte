@@ -1,5 +1,5 @@
 <!--
-  Design a pattern from a few numbers: one motif on a background (PLAN.md §9,
+  Design a pattern from a few numbers: one motif on a background (PLAN.md §5,
   Stages C and D).
 
   The panel holds no knitting logic. methods/shortrow/motif.ts builds the

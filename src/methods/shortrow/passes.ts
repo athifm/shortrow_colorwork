@@ -2,7 +2,7 @@
  * The forward model: a list of passes in, the fabric out.
  *
  * This is the smallest program that captures what the textbook teaches (PLAN.md
- * §2.2, §2.5). Balanced short-row colorwork can be tracked with two things per
+ * §2, §3). Balanced short-row colorwork can be tracked with two things per
  * stitch: how many rows it has been worked so far, and which yarn worked each of
  * them. A pattern is just an ordered list of passes, each one yarn knitting one
  * unbroken run of stitches before it turns or reaches an edge.
@@ -38,7 +38,7 @@ export type Column = number;
  */
 /**
  * How far a yarn may be carried across the back to start where it's needed:
- * up to two stitches from where it was left (LIMITS.md L17, decided
+ * up to two stitches from where it was left (PLAN.md §8, L17, decided
  * 2026-10-24). Everyday intarsia does this when an edge moves diagonally. The
  * book's patterns never need it — every yarn there starts exactly where it
  * stopped — and where a yarn is waiting exactly in place, that's always
@@ -87,7 +87,7 @@ export interface Fabric {
  * stitch, slipped at the start of the return pass and stretched up to fill that
  * row too. Counting it in both is a working assumption, not a measurement — it is
  * the reading under which every stripe pattern in the textbook balances, and the
- * first test stripe exists partly to check it (PLAN.md §2.4).
+ * first test stripe exists partly to check it (PLAN.md §3).
  *
  * Problems are reported, never thrown, so that one mistake in a long pattern
  * still produces a fabric to look at — the rest of the pattern is usually worth

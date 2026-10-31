@@ -8,7 +8,7 @@ import { settle, describeShape } from "../../mesh/settle";
 import { PRESETS } from "../../presets";
 
 /**
- * One motif on a background (PLAN.md §9, Stage C). The strongest check is that
+ * One motif on a background (PLAN.md §5, Stage C). The strongest check is that
  * designing from a few numbers reproduces patterns written by hand: our
  * Stripe and Lens examples here, the textbook's Short Stripes and Shoal's fish
  * privately in research/.

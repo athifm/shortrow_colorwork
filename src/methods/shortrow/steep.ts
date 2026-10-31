@@ -1,5 +1,5 @@
 /**
- * Steep diagonals — LIMITS.md L12: "ask each time: show it rounded to the
+ * Steep diagonals — PLAN.md §8, L12: "ask each time: show it rounded to the
  * steepest short-row slope and snapped to vertical (intarsia), and you choose".
  *
  * Short rows can make an edge lean at most a stitch per ridge: one turn a

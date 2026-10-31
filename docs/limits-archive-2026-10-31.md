@@ -1,6 +1,6 @@
 # What can be drawn — limitations of drawing → short-row pattern
 
-Stage E of PLAN.md §9. **Marked by you on 2026-10-24** — the "Your call" column is
+Stage E of PLAN.md §5. **Marked by you on 2026-10-24** — the "Your call" column is
 settled. For each limitation: my reading of it, my draft, and your call. This is
 the spec the grid constructor (Stage F) follows.
 
@@ -38,7 +38,7 @@ drawing is one of three kinds:
 |---|---|
 | **Horizontal** — colour changes from one ridge to the next | nothing special: change yarn at the row |
 | **Vertical** | intarsia (hand-overs) — and *only* here |
-| **Sloped or curved** | short rows, always — fitted from templates of shapes we know how to knit (PLAN.md §9, F2) |
+| **Sloped or curved** | short rows, always — fitted from templates of shapes we know how to knit (PLAN.md §5, F2) |
 
 Intarsia is not a fallback for shapes that don't fit a template.
 
@@ -81,7 +81,7 @@ if enough hand-overs are allowed. If that holds, nothing drawn is truly
 |---|---|---|---|---|
 | L14 | The knitted shape isn't exactly the drawn shape | Ridges bend where short rows turn | auto: show the relaxed preview beside the drawing | **auto**: the predicted knitted look always shown beside the drawing |
 | L15 | The same grid can be knitted several ways, and they look different | Turns and hand-overs bend ridges differently | auto: pick the one closest to the drawing; say which it chose | **ask**: show the ways it could be knitted side by side, and you pick |
-| L16 | How much ridges bend, and what stretch won't lie flat, are guesses | Not yet measured with yarn (PLAN.md §2.4) | fine for now, but say it's a prediction | **fine**: use the current numbers, labelled as a prediction |
+| L16 | How much ridges bend, and what stretch won't lie flat, are guesses | Not yet measured with yarn (PLAN.md §3) | fine for now, but say it's a prediction | **fine**: use the current numbers, labelled as a prediction |
 
 ---
 

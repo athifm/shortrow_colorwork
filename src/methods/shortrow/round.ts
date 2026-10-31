@@ -1,5 +1,5 @@
 /**
- * Rounding a drawing so short rows can knit it (LIMITS.md L13: "auto: nearest
+ * Rounding a drawing so short rows can knit it (PLAN.md §8, L13: "auto: nearest
  * allowed steps, knitted edge shown over the drawing").
  *
  * Some sloped edges can't be turned exactly as drawn. A lens whose top and

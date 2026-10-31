@@ -188,7 +188,7 @@
 
   // The model's guesses, overridable only while developing, to fit them against
   // the photos by eye. In a production build `import.meta.env.DEV` is false and
-  // the sliders don't exist: users never tune the physics (PLAN.md §7).
+  // the sliders don't exist: users never tune the physics (PLAN.md §4).
   let tunedPull = $state(yarnPull.compute({}));
   let tunedDouble = $state(doubleStitchStiffness.compute({}));
   const pull = $derived(import.meta.env.DEV ? tunedPull : yarnPull.compute({}));
@@ -251,10 +251,10 @@
     return lo === hi ? `${lo}` : `${lo}–${hi}`;
   });
 
-  // Rule 1 (PLAN.md §9): no turning stitch directly on top of another.
+  // Rule 1 (PLAN.md §5): no turning stitch directly on top of another.
   const stacked = $derived(stackedTurns(fabric, read.passes, read.info.map((i) => i.endsInTurn)));
 
-  // "Balance it" — development only for now (PLAN.md §9, Stage B). Levels one
+  // "Balance it" — development only for now (PLAN.md §5, Stage B). Levels one
   // repeat of the pattern with catch-up pairs and writes the whole thing back
   // into the box, so the result can be looked at like any other pattern.
   let balanceSide = $state<"left" | "right" | "both">("left");
@@ -357,6 +357,26 @@
       removePhoto();
     }
   }
+
+  // Two pages: the pattern lab, and drawing — in development, its own tab so
+  // it has room. Remembered per browser.
+  const TAB_KEY = "shortrow-lab.tab.v1";
+  let tab = $state<"lab" | "draw">(
+    (() => {
+      try {
+        return localStorage.getItem(TAB_KEY) === "draw" ? "draw" : "lab";
+      } catch {
+        return "lab";
+      }
+    })(),
+  );
+  $effect(() => {
+    try {
+      localStorage.setItem(TAB_KEY, tab);
+    } catch {
+      // Not remembered; the tabs still work.
+    }
+  });
 </script>
 
 <header>
@@ -365,27 +385,36 @@
     Type or paste a pattern's written rows. You'll see the chart, the fabric it
     makes, and whether every stitch ends up with the same number of rows.
   </p>
+  <nav class="tabs" aria-label="Pages">
+    <button type="button" class="tab" aria-pressed={tab === "lab"} onclick={() => (tab = "lab")}>Pattern lab</button>
+    <button type="button" class="tab" aria-pressed={tab === "draw"} onclick={() => (tab = "draw")}>
+      Draw (in development)
+    </button>
+  </nav>
 </header>
 
-<main>
+<section class="draw-tab" aria-label="Draw" hidden={tab !== "draw"}>
+  <GridEditor
+    {colourOf}
+    onknit={(rows, n) => {
+      text = rows;
+      stitches = n;
+      // A drawn grid is the whole piece, not a repeat.
+      repeats = 1;
+      loaded = null;
+      hovered = null;
+      hoveredExact = null;
+      tab = "lab";
+    }}
+  />
+</section>
+
+<main hidden={tab !== "lab"}>
   <section class="controls" aria-label="Pattern">
     <DesignPanel
       onmake={(rows, n) => {
         text = rows;
         stitches = n;
-        loaded = null;
-        hovered = null;
-        hoveredExact = null;
-      }}
-    />
-
-    <GridEditor
-      {colourOf}
-      onknit={(rows, n) => {
-        text = rows;
-        stitches = n;
-        // A drawn grid is the whole piece, not a repeat.
-        repeats = 1;
         loaded = null;
         hovered = null;
         hoveredExact = null;
@@ -643,6 +672,46 @@
 </main>
 
 <style>
+  [hidden] {
+    display: none !important;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab {
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 7px 14px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+  .tab[aria-pressed="true"] {
+    color: var(--ink);
+    background: var(--surface);
+    border-color: var(--line);
+  }
+  .tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .draw-tab {
+    padding: 16px 24px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  @media (max-width: 860px) {
+    .draw-tab {
+      padding: 16px;
+    }
+  }
   header {
     padding: 24px 24px 8px;
     max-width: 1400px;
