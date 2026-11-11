@@ -13,15 +13,24 @@
   look"). Each blob of colour is fitted to a short-row unit (PLAN.md §6,
   mesh/fit.ts) three ways — the shape grows, the background gives way, or
   either — and those are offered side by side with the drawing as it is, each
-  with its cost and its predicted look (L19). You pick; the plan and the look
-  of the one picked are shown large. "Draw the needle" reads
+  with its cost and its predicted look (L19). You pick; for the one picked,
+  the plan is shown large, then the fabric it makes once it relaxes — the
+  pattern lab's own picture (FabricView, mesh/settle.ts) — and your drawing
+  with lines where the colour edges will land. "Draw the needle" reads
   each cell literally: built with short rows (construct.ts), rounded where turns
   would crowd (round.ts, L13), and a steep diagonal shown both ways for you to
   choose (steep.ts, L12). Intarsia alone (F1) is offered alongside, to compare.
-  "Knit it" writes the pattern out and hands it to the pattern lab.
+
+  Everything about the way picked is on this one page: its needle chart beside
+  its fabric (point at one to light up the other), whether it lies flat, and
+  the written rows. "Open in pattern lab" hands the rows over, to edit by hand.
 
   The grid is kept as text, the same notation as the probe grids: one line per
   ridge, top first, a letter A–J per cell.
+
+  While developing, a review bar (ReviewBar.svelte) sits over the drawing: say
+  "looks right", save a redraw or leave a note on the shape loaded, and it's
+  kept in review/review.json to be read from the project.
 -->
 <script lang="ts">
   import { parseGrid, type Grid } from "../methods/shortrow/grid";
@@ -29,12 +38,16 @@
   import { knitShortRows } from "../methods/shortrow/construct";
   import { roundForShortRows, type Change } from "../methods/shortrow/round";
   import { steepEdges, roundSteep } from "../methods/shortrow/steep";
-  import { turnsOf } from "../methods/shortrow/rules";
   import { writeRows, colourOfStrand } from "../methods/shortrow/writer";
-  import { lookOf } from "../mesh/look";
-  import { versionsOf, type Version, type Way } from "../mesh/fit";
+  import type { Edge } from "../mesh/look";
+  import { predictionOf, versionsOf, type Version, type Way } from "../mesh/fit";
   import type { UnitKind } from "../methods/shortrow/units";
-  import { yarnPull, doubleStitchStiffness } from "../model/physical";
+  import { yarnPull, doubleStitchStiffness, stitchAspect, smallestBump, flatnessThreshold } from "../model/physical";
+  import { describeShape } from "../mesh/settle";
+  import FabricView from "./FabricView.svelte";
+  import NeedleChart from "./NeedleChart.svelte";
+  import ReviewBar from "./ReviewBar.svelte";
+  import { loadReview, saveReview, type Review, type ReviewEntry } from "./review";
   import { simulate, type Pass } from "../methods/shortrow/passes";
   import { PROBES, SHAPES } from "../methods/shortrow/probes";
 
@@ -134,9 +147,96 @@
 
   function loadProbe(event: Event) {
     const select = event.currentTarget as HTMLSelectElement;
-    const probe = [...SHAPES, ...PROBES].find((p) => p.id === select.value);
+    loadShape(select.value);
     select.value = "";
-    if (probe) rows = probe.grid.split("\n").map((l) => [...toLetters(l)]);
+  }
+
+  // --- The shape review (development only) --------------------------------------
+
+  // The published site has no dev server to keep the review file, so no bar.
+  const REVIEWING = import.meta.env.DEV;
+  let review = $state<Review>({ entries: {} });
+  /** The shape loaded for review, and the drawing as it was loaded. */
+  let reviewing = $state<{ id: string; title: string; name: string; loaded: string } | null>(null);
+  let reviewStatus = $state("");
+  if (REVIEWING) loadReview().then((r) => (review = r));
+
+  const drawingText = $derived(rows.map((r) => r.join("")).join("\n"));
+  const reviewed = $derived(SHAPES.filter((s) => review.entries[s.id]?.verdict).length);
+  const mine = $derived(Object.values(review.entries).filter((e) => e.mine));
+  /** Notes on a drawing that is no shape in particular are kept together. */
+  const LOOSE = { id: "notes", name: "Notes on other drawings" };
+
+  /** A test shape, a probe or a shape of your own — your redraw of it, if you saved one. */
+  function loadShape(id: string) {
+    const probe = [...SHAPES, ...PROBES].find((p) => p.id === id);
+    const entry = review.entries[id];
+    const saved = entry?.grid && (entry.verdict === "redrawn" || entry.mine) ? entry.grid : null;
+    const text = saved ?? (probe ? probe.grid.split("\n").map(toLetters).join("\n") : null);
+    if (text === null) return;
+    rows = text.split("\n").map((l) => [...l]);
+    const test = SHAPES.find((p) => p.id === id);
+    reviewing = test
+      ? { id, title: `${id} ${test.name}`, name: test.name, loaded: text }
+      : entry?.mine
+        ? { id, title: `your shape "${entry.name}"`, name: entry.name, loaded: text }
+        : null;
+    reviewStatus = "";
+  }
+
+  async function record(id: string, name: string, change: (entry: ReviewEntry) => void, said: string) {
+    const entry = review.entries[id] ?? { id, name, verdict: null, grid: null, notes: [] };
+    change(entry);
+    review.entries[id] = entry;
+    reviewStatus = (await saveReview($state.snapshot(review))) ? said : "Couldn't save that — is the dev server running?";
+  }
+
+  function looksRight() {
+    if (!reviewing) return;
+    const grid = drawingText;
+    record(reviewing.id, reviewing.name, (e) => ((e.verdict = "looks right"), (e.grid = grid)), "Saved: looks right.");
+  }
+
+  function saveRedraw() {
+    if (!reviewing) return;
+    const grid = drawingText;
+    record(reviewing.id, reviewing.name, (e) => ((e.verdict = "redrawn"), (e.grid = grid)), "Saved your redraw.");
+    reviewing.loaded = grid;
+  }
+
+  /** Drop a redraw: the draft comes back, to be judged afresh. Notes stay. */
+  async function backToDraft() {
+    if (!reviewing) return;
+    const id = reviewing.id;
+    await record(id, reviewing.name, (e) => ((e.verdict = null), (e.grid = null)), "Back to the draft.");
+    loadShape(id);
+    reviewStatus = "Back to the draft.";
+  }
+
+  function addNote(text: string) {
+    const about = reviewing ?? LOOSE;
+    const note = {
+      at: new Date().toISOString(),
+      text,
+      grid: drawingText,
+      reading: mode,
+      way: worked && !stale && chosen ? chosen.way : null,
+    };
+    record(about.id, about.name, (e) => e.notes.push(note), "Saved your note.");
+  }
+
+  /** The next test shape not yet reviewed, after this one; or simply the next. */
+  function nextShape() {
+    const from = SHAPES.findIndex((s) => s.id === reviewing?.id);
+    const order = SHAPES.map((_, k) => SHAPES[(from + 1 + k) % SHAPES.length]);
+    loadShape((order.find((s) => !review.entries[s.id]?.verdict) ?? order[0]).id);
+  }
+
+  function saveAsNew(name: string) {
+    const id = `mine: ${name}`;
+    const grid = drawingText;
+    record(id, name, (e) => ((e.mine = true), (e.grid = grid)), `Saved as "${name}".`);
+    reviewing = { id, title: `your shape "${name}"`, name, loaded: grid };
   }
 
   // --- Worked out on request --------------------------------------------------
@@ -158,7 +258,12 @@
     }, 20);
   }
 
-  const physics = { yarnPull: yarnPull.compute({}), doubleStitch: doubleStitchStiffness.compute({}) };
+  const physics = {
+    yarnPull: yarnPull.compute({}),
+    doubleStitch: doubleStitchStiffness.compute({}),
+    stitchAspect: stitchAspect.compute({}),
+    smallestBump: smallestBump.compute({}),
+  };
   const grid = $derived(worked?.grid ?? null);
   const colours = $derived(grid ? new Set(grid.cells.flat()).size : 0);
 
@@ -181,22 +286,10 @@
       byCell.set(key, { ...ch, from: byCell.get(key)?.from ?? ch.from });
     }
     const changed = [...byCell.values()].filter((ch) => ch.from !== ch.to);
-    return { ...k, changed, crowded: more.length, turns: turnsOf(k.passes, g.width).filter(Boolean).length };
-  }
-
-  /** What a pattern will look like, relaxed, and where that differs from the
-   *  drawing (L1). A prediction: it rests on the guessed physics. */
-  function lookFor(g: Grid, passes: Pass[]) {
-    const look = lookOf(simulate(g.width, passes), passes, { ...physics, endsInTurn: turnsOf(passes, g.width) }, colourOfStrand);
-    if (!look) return null;
-    const differs: Change[] = [];
-    look.cells.forEach((row, ridge) =>
-      row.forEach((colour, i) => {
-        const drawn = g.cells[ridge][i];
-        if (colour !== drawn) differs.push({ ridge, column: i + 1, from: drawn, to: colour });
-      }),
-    );
-    return { cells: look.cells, differs };
+    // The fabric it makes, as the pattern lab will draw it — and its turns,
+    // counted as a knitter reads them back.
+    const prediction = k.problems.length === 0 ? predictionOf(g.width, k.passes, physics) : null;
+    return { ...k, changed, crowded: more.length, prediction, turns: prediction?.endsInTurn.filter(Boolean).length ?? 0 };
   }
 
   // Draw the needle: steep diagonals are knitted as you choose, asked afresh
@@ -214,12 +307,16 @@
   const versions = $derived(worked?.mode === "look" ? versionsOf(worked.grid, physics) : null);
   const shown = $derived(versions ? versions.filter((v) => !v.sameAs) : []);
   const knits = (v: Version) => v.built.problems.length === 0;
-  /** Picked to start with: the short-row way whose look is nearest the
-   *  drawing, fewest stitches changed on a tie; else the drawing as it is. */
+  const intarsiaRows = (v: Version) => v.prediction?.intarsiaRows.length ?? 0;
+  const intarsiaNote = (n: number) =>
+    `${n} ${n === 1 ? "row is" : "rows are"} intarsia-style: a colour stops for another and carries on beyond it from a second ball.`;
+  /** Picked to start with: the short-row way with the fewest intarsia-style
+   *  rows, then the one whose look is nearest the drawing, fewest stitches
+   *  changed on a tie; else the drawing as it is. */
   const suggested = $derived.by((): Way | null => {
     if (!versions) return null;
     const ok = shown.filter((v) => knits(v) && v.turns > 0);
-    ok.sort((a, b) => a.mismatch.length - b.mismatch.length || a.changed.length - b.changed.length);
+    ok.sort((a, b) => intarsiaRows(a) - intarsiaRows(b) || a.mismatch.length - b.mismatch.length || a.changed.length - b.changed.length);
     return ok[0]?.way ?? "as drawn";
   });
   let wayPick = $state<{ key: string; way: Way } | null>(null);
@@ -259,12 +356,26 @@
     return chosen ? { ...chosen.built, turns: chosen.turns } : null;
   });
 
-  /** What it will look like, and where that differs from the drawing. */
+  /** The fabric it makes once it relaxes: a prediction, resting on the
+   *  model's guesses — the same one the pattern lab shows. */
   const view = $derived.by(() => {
     if (!grid) return null;
-    if (needle) return shortRows && shortRows.problems.length === 0 ? lookFor(grid, shortRows.passes) : null;
-    return chosen?.look ? { cells: chosen.look, differs: chosen.mismatch } : null;
+    return needle ? (shortRows?.prediction ?? null) : (chosen?.prediction ?? null);
   });
+
+  const verdict = $derived(view ? describeShape(view.shape, flatnessThreshold.compute({})) : null);
+  /** The pass pointed at, in the needle chart or the fabric: lit up in both. */
+  let hoveredPass = $state<number | null>(null);
+  let copied = $state(false);
+  async function copyRows(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+      setTimeout(() => (copied = false), 1500);
+    } catch {
+      message = "Couldn't copy — select the rows and copy them by hand.";
+    }
+  }
 
   /** Intarsia alone (F1): knits anything, at a price in yarn. */
   const intarsia = $derived.by(() => {
@@ -286,6 +397,8 @@
 
   const CELL = 14;
   const THUMB = 6;
+  /** FabricView's own padding and border, so its stitches come out CELL wide. */
+  const FABRIC_FRAME = 18;
 </script>
 
 {#snippet thumb(cells: string[][], changed: Change[], size: number = THUMB)}
@@ -320,10 +433,50 @@
   </svg>
 {/snippet}
 
+<!-- The drawing, with lines where the colour edges land once the fabric
+     relaxes: each line twice, a dark casing under a light line, so it shows
+     on any colour. -->
+{#snippet landed(cells: string[][], edges: Edge[])}
+  {@const h = cells.length}
+  {@const w = cells[0]?.length ?? 0}
+  <svg width={w * CELL} height={h * CELL} viewBox="0 0 {w * CELL} {h * CELL}" aria-hidden="true">
+    {#each cells as row, r (r)}
+      {#each row as cell, c (c)}
+        <rect x={(w - 1 - c) * CELL} y={(h - 1 - r) * CELL} width={CELL} height={CELL} fill={colourOf(cell)} />
+      {/each}
+    {/each}
+    {#each ["edge-casing", "edge"] as layer (layer)}
+      {#each edges as e, k (k)}
+        {#if e.kind === "across"}
+          <line class={layer} x1={(w - 1 - e.column) * CELL} x2={(w - e.column) * CELL} y1={(h - e.at) * CELL} y2={(h - e.at) * CELL} />
+        {:else}
+          <line class={layer} x1={(w - 1 - e.after) * CELL} x2={(w - 1 - e.after) * CELL} y1={(h - e.from) * CELL} y2={(h - e.to) * CELL} />
+        {/if}
+      {/each}
+    {/each}
+  </svg>
+{/snippet}
+
 <svelte:window onpointerup={() => (painting = false)} />
 
 <div class="grid-editor">
   <section class="drawing" aria-label="Your drawing">
+    {#if REVIEWING}
+      <ReviewBar
+        title={reviewing?.title ?? null}
+        entry={review.entries[(reviewing ?? LOOSE).id]}
+        redrawn={reviewing !== null && reviewing.loaded !== drawingText}
+        done={reviewed}
+        total={SHAPES.length}
+        status={reviewStatus}
+        onlooksright={looksRight}
+        onredraw={saveRedraw}
+        onnote={addNote}
+        onnext={nextShape}
+        onreset={backToDraft}
+        onsaveas={saveAsNew}
+      />
+    {/if}
     <div class="row">
       <label><span>Stitches</span><input type="number" min="2" max={MAX_W} value={width} onchange={(e) => resize(Number((e.currentTarget as HTMLInputElement).value), height)} /></label>
       <label><span>Ridges</span><input type="number" min="1" max={MAX_H} value={height} onchange={(e) => resize(width, Number((e.currentTarget as HTMLInputElement).value))} /></label>
@@ -332,8 +485,15 @@
         <select onchange={loadProbe}>
           <option value="">a shape…</option>
           <optgroup label="Shapes this app is for">
-            {#each SHAPES as p (p.id)}<option value={p.id}>{p.id} {p.name}</option>{/each}
+            {#each SHAPES as p (p.id)}
+              <option value={p.id}>{review.entries[p.id]?.verdict ? "✓ " : ""}{p.id} {p.name}</option>
+            {/each}
           </optgroup>
+          {#if mine.length > 0}
+            <optgroup label="Your shapes">
+              {#each mine as e (e.id)}<option value={e.id}>{e.name}</option>{/each}
+            </optgroup>
+          {/if}
           <optgroup label="Old probes (regression tests)">
             {#each PROBES as p (p.id)}<option value={p.id}>{p.id} {p.name}</option>{/each}
           </optgroup>
@@ -472,6 +632,7 @@
                       ? "All hand-overs: intarsia, not short-row colorwork."
                       : `Its look: ${v.mismatch.length} ${v.mismatch.length === 1 ? "cell differs" : "cells differ"} from your drawing.`}
                   </span>
+                  {#if v.turns > 0 && intarsiaRows(v) > 0}<span class="bad">{intarsiaNote(intarsiaRows(v))}</span>{/if}
                   {#if v.units.length > 0}<span>Found: {unitsOf(v)}.</span>{/if}
                 {/if}
               </button>
@@ -497,19 +658,16 @@
           </div>
         {/if}
 
-        {#if view}
-          <div class="panel">
-            <p class="note">
-              <strong>What you'll get</strong>, once the ridges bend — a prediction.
-              {#if view.differs.length === 0}
-                It matches your drawing.
-              {:else}
-                {view.differs.length} {view.differs.length === 1 ? "cell differs" : "cells differ"} from your
-                drawing (outlined; the small square is the colour you drew).
-              {/if}
-            </p>
-            <div class="canvas">{@render thumb(view.cells, view.differs, CELL)}</div>
-          </div>
+        {#if view && grid}
+          {#if view.edges.length > 0}
+            <div class="panel">
+              <p class="note">
+                <strong>Against your drawing</strong> — the lines are where the colour edges will land. Where a line
+                leaves an edge you drew, the fabric will differ there.
+              </p>
+              <div class="canvas">{@render landed(grid.cells, view.edges)}</div>
+            </div>
+          {/if}
         {/if}
       </div>
 
@@ -560,6 +718,12 @@
           {colours} {colours === 1 ? "colour" : "colours"} ·
           {active.turns} {active.turns === 1 ? "turn" : "turns"}
         </p>
+        {#if view && view.intarsiaRows.length > 0 && active.turns > 0}
+          <p class="warn">
+            {intarsiaNote(view.intarsiaRows.length)} In the written pattern: {view.intarsiaRows.length === 1 ? "row" : "rows"}
+            {view.intarsiaRows.join(", ")}.
+          </p>
+        {/if}
         {#if needle && shortRows && shortRows.changed.length > 0}
           {@const n = shortRows.changed.length}
           <p class="note">
@@ -569,6 +733,60 @@
             {n} {n === 1 ? "stitch changes" : "stitches change"}, outlined on the drawing and filled with the colour
             {n === 1 ? "it" : "they"}'ll be knitted in.
           </p>
+        {/if}
+        {#if view && grid}
+          <div class="panels knitting" class:stale>
+            {#if view.info.length > 0}
+              <div class="panel">
+                <p class="note"><strong>Needle chart</strong> — one line per pass, in knitting order. ∞ is a turn.</p>
+                <div class="chart">
+                  <NeedleChart
+                    stitches={grid.width}
+                    passes={view.passes}
+                    info={view.info}
+                    {colourOf}
+                    hovered={hoveredPass}
+                    onhover={(pass) => (hoveredPass = pass)}
+                  />
+                </div>
+              </div>
+            {/if}
+            <div class="panel">
+              <p class="note">
+                <strong>What you'll get</strong> — the fabric once it relaxes, every stitch where it settles. A
+                prediction.
+              </p>
+              <div class="fabric" style="width: {grid.width * CELL + FABRIC_FRAME}px">
+                <FabricView
+                  fabric={view.fabric}
+                  shape={view.shape}
+                  showStretch={verdict?.kind === "stretched"}
+                  colourOfStrand={(strand) => colourOf(colourOfStrand(strand))}
+                  linked={(pass) => pass === hoveredPass}
+                  onhover={(pass) => (hoveredPass = pass)}
+                />
+              </div>
+            </div>
+          </div>
+          <p class="note" class:stale>
+            {#if verdict?.kind === "rectangle"}
+              ✓ Lies flat — a rectangle.
+            {:else if verdict?.kind === "fan"}
+              ◢ Lies flat — fans out about {verdict.degrees}°, the {verdict.longer} edge longer.
+            {:else if verdict}
+              ✗ Won't lie flat — the rows over columns {verdict.fromColumn}–{verdict.toColumn} would have to stretch
+              about {verdict.percent}%.
+            {/if}
+            {#if view.fabric.balanced}Balanced: {view.fabric.heights[0]} rows in every stitch.{:else}Not balanced.{/if}
+            Point at a pass in the chart, or a stitch in the fabric, to see where it came from.
+          </p>
+          <div class="written" class:stale>
+            <p class="note">
+              <strong>Written rows</strong> — {view.written.split("\n").length} rows.
+              <button type="button" class="link" onclick={() => copyRows(view.written)}>{copied ? "Copied" : "Copy"}</button>
+            </p>
+            <pre>{view.written}</pre>
+          </div>
         {/if}
       {:else if needle && steep.length > 0 && !way}
         <p class="note">Choose how to knit the steep diagonal, above.</p>
@@ -582,15 +800,15 @@
           type="button"
           class="knit"
           onclick={() => active && knit(active.passes)}
-          disabled={stale || !active || active.problems.length > 0}>Knit it</button
+          disabled={stale || !active || active.problems.length > 0}>Open in pattern lab</button
         >
       </div>
-      <p class="hint">"Knit it" writes the pattern out and opens it in the pattern lab.</p>
+      <p class="hint">Opens these written rows in the pattern lab, to edit them by hand.</p>
       {#if intarsia}
         <p class="hint">
           Intarsia alone, to compare: {intarsia.strands.length} balls ({intarsia.ends} ends),
           {intarsia.carries} short {intarsia.carries === 1 ? "carry" : "carries"} across the back.
-          <button type="button" class="link" onclick={() => knit(intarsia.passes)} disabled={stale}>Knit it this way</button>
+          <button type="button" class="link" onclick={() => knit(intarsia.passes)} disabled={stale}>Open that in the pattern lab</button>
         </p>
       {/if}
       <p class="hint">Sloped edges are built with short rows, straight vertical edges with intarsia hand-overs.</p>
@@ -749,6 +967,48 @@
   }
   .thumb-cell {
     stroke: none;
+  }
+  .fabric {
+    max-width: 100%;
+  }
+  .knitting {
+    margin-top: 12px;
+    align-items: flex-start;
+  }
+  .chart {
+    max-width: 100%;
+  }
+  .written {
+    margin-top: 12px;
+  }
+  .written pre {
+    margin: 6px 0 0;
+    padding: 8px;
+    max-height: 16rem;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    white-space: pre-wrap;
+    color: var(--ink);
+  }
+  .note.stale,
+  .written.stale {
+    opacity: 0.45;
+  }
+  .edge,
+  .edge-casing {
+    fill: none;
+    stroke-linecap: square;
+    pointer-events: none;
+  }
+  .edge-casing {
+    stroke: #000;
+    stroke-width: 4;
+  }
+  .edge {
+    stroke: #fff;
+    stroke-width: 1.5;
   }
   .thumb-drawn {
     stroke: var(--ink);

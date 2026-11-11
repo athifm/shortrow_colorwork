@@ -246,6 +246,24 @@ another and the big panels follow. Changed cells keep a small square of the
 colour you drew. Where the way picked gets stuck, the spot is ringed on your
 drawing; a shape no unit fits is outlined.
 
+**What you'll get, redone 2026-11-11.** For the way picked: the relaxed fabric
+itself, drawn as the pattern lab draws it, and your drawing with lines where
+the colour edges will land. Both tabs use one prediction (`predictionOf` in
+`mesh/fit.ts`: the pattern written out, read back, settled). Found on the way:
+the cell look (`look.ts`) was reading the fabric half a row too high, which
+skewed every "cells differ" count — fixed; and turns were under-counted where
+another yarn's pass came between a turn and the way back — now counted as the
+reader counts them.
+
+**Intarsia-style rows flagged, 2026-11-11** (your call: flag, then fix the
+cause). A written row that uses two balls of one colour — a colour stops for
+another and carries on beyond it from a second ball — is counted on each card
+and listed by row number for the way picked; the suggestion prefers ways with
+fewer. Handing over into a nested shape isn't flagged: the colour comes back
+over the finished shape with the same ball, the book's way. Today: your blob
+nudged has 6 such rows, grown 1; the teardrop as drawn 10, fitted 0; your T
+fitted 2 (its crossbar reaches the top, L18).
+
 **Where the shapes stand now** (the best short-row way for each):
 
 | Shape | Before units | Now |
@@ -254,7 +272,7 @@ drawing; a shape no unit fits is outlined.
 | S6 zigzag band | stuck | knits as drawn, 2 balls |
 | S7 oval | stuck | 4 stitches change (background gives way) |
 | S8 teardrop, S9 leaf | knit as drawn | the same, plus fitted versions |
-| S10 wave band | 4 balls, look 2 cells off | 2 balls, look 11 cells off — knitted in one piece now; worth a look |
+| S10 wave band | 4 balls | 2 balls, look 3 cells off (the "11" first reported came from the half-row error) |
 | S11 blob at the edge | stuck | 2 stitches change |
 | S12 two blobs side by side | stuck | knits as drawn |
 | S13 blob inside a blob | stuck | 6 stitches change (background gives way) |
@@ -263,19 +281,81 @@ drawing; a shape no unit fits is outlined.
 | S16 your fish | stuck | one rough way: the shape grows, 40 stitches change, 9 balls |
 | S17 your T | all hand-overs | 4 stitches change: 3 balls, 11–12 turns, or 4 balls, 15 turns |
 
-**Next in this section** (queued, not started):
+**One page, 2026-11-11.** The Draw tab shows everything about the way picked
+without leaving it: needle chart beside the relaxed fabric (pointing at one
+lights up the other), the lies-flat verdict, and the written rows with a Copy
+button. "Knit it" became "Open in pattern lab", for editing rows by hand.
 
-- **Tails.** A flared tail is the opposite of a unit — wider at its end than at
-  the joint. Idea: a body unit plus a tail unit of the same colour.
-- **Round shapes, like your fish's body.** A unit thickens a ridge per stitch at
-  most, so a body 10 stitches wide reaches about 5 ridges, not 9, without big
-  changes. Short-row colorwork gets round shapes from the ridges bending; with
-  today's guesses (§3) the bending is small. Worth revisiting after
-  calibration.
-- **Wave band look.** Knitted in one piece it looks less like the drawing than
-  when it was cut up; offer both?
-- Old "draw the look" conversion (L3, `convert.ts`) is no longer used by the
-  editor; it only fine-tunes for bending, which the guesses make small.
+**Review bar, 2026-11-11** (development only). Over the drawing in the Draw
+tab: "Looks right", "Save my redraw", "Add note", "Next shape", and saving a
+drawing of your own under a name. Each is written at once to
+`review/review.json` (not published), which Claude reads when you say so — no
+screenshots. A redraw changes the test set only once the review has been read.
+
+**Your review, 2026-11-11** (`review/review.json`). Looks right, no redraws:
+S1–S7, S9, S10, S12, S13, S14 — these are now the safety net: they must keep
+knitting as they do. Open, with your notes:
+
+| Shape | Your note |
+|---|---|
+| S5 fish with a tail | too small to verify; needs a scaled-up version |
+| S8 teardrop | why can't it be made as drawn? Find the reason, to learn |
+| S15 your blob | colour changes in the same rows; needs construction that gives the look drawn |
+| S16 your fish | doesn't replicate the design; needs investigation |
+| S17 your T | needs improved logic |
+| S11 blob at the edge | (approved in effect) a good one to knit and test the physics — see §7, calibrate |
+
+### The plan from here (agreed 2026-11-11)
+
+**The goal:** work out the logic of short-row construction. Not more recipes:
+a few laws that say whether a drawing can be knitted the book's way, and a
+builder that knits whatever keeps them.
+
+**The laws, as understood today** — from what the fitter and builder needed,
+not the book's own wording; working the open shapes may add or change one:
+
+1. **Slope.** A shape gets thicker or thinner by a ridge per stitch at most
+   (each turn a stitch further on). So a shape growing from both ends is at
+   most about half as tall as it is wide. This is why the teardrop (7 wide, 7
+   tall) and your fish's body can't be knitted as drawn.
+2. **No one-stitch bumps.** A bump one stitch wide is two turns on one stitch.
+3. **Tips.** A shape ends in a point one ridge thick, unless at the fabric's
+   edge. No vertical sides (those are intarsia's).
+4. **One ball per shape.** A colour is handed over once; the shape is finished
+   with its own short rows; the colour around it then knits across it with the
+   same ball. No row uses two balls of one colour.
+5. **Balance.** The background fills in until every stitch has the same rows.
+
+**Steps:**
+
+1. **Commit and push** what exists.
+2. **Laws on the page.** A checker that marks on your drawing where a law is
+   broken, and says which — the answer to "why can't this be made" for any
+   shape.
+3. **The book's method only.** The builder knits any drawing that keeps the
+   laws, shapes inside shapes with one ball included (S15). It is the only way
+   suggested; an intarsia version may be shown as a labelled extra, never the
+   suggestion.
+4. **Scale buttons.** "Bigger ×2" cures *too small* (a one-stitch detail: the
+   fish's tail, your blob's bump) — expected, to be tested. "Wider ×2" cures
+   *too steep* (the teardrop, your fish's body), at the price of the drawing's
+   proportions; bigger alone keeps the same steepness. The app says which a
+   drawing needs. Then the five open shapes are run at larger sizes, and which
+   law each cure answers is written down.
+5. **What's left.** Tails (S5: a tail is wider at its end than at the joint,
+   the opposite of a tip — a body unit plus a tail unit?) and the T (S17 —
+   first, what "improved" means to you). Each asked the same way: which law
+   does it break, and does the book have a construction for it?
+6. **Another round of review**, with the review bar, on the open shapes and
+   anything new.
+
+**How we know it's working:** each open shape ends one of two ways — it knits
+the book's way and looks like the drawing, or the app names the law that stops
+it and the change that cures it. Either teaches the logic.
+
+**Set aside:** the old "draw the look" conversion (L3, `convert.ts`) is no
+longer used by the editor; round shapes from ridges bending wait for
+calibration.
 
 ---
 
@@ -285,7 +365,8 @@ drawing; a shape no unit fits is outlined.
 creates vertical edges; preferring an even shape; avoiding edits; changes
 bunching on one side of a symmetric drawing; the circle's extra ball; "C" shapes.
 
-**Outstanding:** check whether GitHub Pages is switched on; push when you say.
+**Outstanding:** GitHub Pages is off (checked 2026-11-11): pushing publishes
+no site. Push when you say.
 
 **Later:**
 
@@ -299,7 +380,8 @@ bunching on one side of a symmetric drawing; the circle's extra ball; "C" shapes
 - Other colourwork methods.
 
 **Last todo: calibrate the parameters.** After everything else: knit test pieces
-— the Wedge and Bump examples, a test stripe — measure them, and turn §3's
+— the Wedge and Bump examples, a test stripe, and the blob at the edge (S11,
+your pick in the review) — measure them, and turn §3's
 guesses into measured values. Until then the app labels its predicted look a
 prediction.
 

@@ -19,6 +19,10 @@
 import type { Fabric, Pass, Yarn } from "../methods/shortrow/passes";
 import { relax, type RelaxOptions } from "./relax";
 
+/** Where the fabric's bottom edge is, in the heights mesh/relax.ts gives: it
+ *  puts row r's centre at r + 1, so the first row starts half a row up. */
+export const BOTTOM_EDGE = 0.5;
+
 export interface Look {
   /** cells[ridge][column − 1]: the colour that fills most of that cell. Ridge 0
    *  is the cast-on, column 1 the right edge — the same layout as a Grid. */
@@ -47,8 +51,8 @@ export function lookOf(
   const cells: Yarn[][] = [];
   const share: number[][] = [];
   for (let r = 0; r < ridges; r++) {
-    const bottom = 2 * r;
-    const top = 2 * r + 2;
+    const bottom = 2 * r + BOTTOM_EDGE;
+    const top = bottom + 2;
     const rowCells: Yarn[] = [];
     const rowShare: number[] = [];
     fabric.stacks.forEach((stack, i) => {
@@ -83,4 +87,63 @@ export function needleOf(fabric: Fabric, colourOf: (strand: Yarn) => Yarn): Yarn
   if (!fabric.balanced || fabric.heights[0] % 2 !== 0) return null;
   const ridges = fabric.heights[0] / 2;
   return Array.from({ length: ridges }, (_, r) => fabric.stacks.map((stack) => colourOf(stack[2 * r])));
+}
+
+/** A piece of the outline of a patch of colour in the relaxed fabric, on the
+ *  drawing's grid: across one column at a height, or up the line between two
+ *  columns. Heights are in ridges above the cast-on; column 0 is column 1. */
+export type Edge =
+  | { kind: "across"; column: number; at: number }
+  | { kind: "up"; after: number; from: number; to: number };
+
+/** Heights closer than this, in rows, are the same height: arithmetic, not knitting. */
+const SAME_HEIGHT = 1e-6;
+
+/**
+ * Where the edges between colours land once the fabric relaxes — to draw over
+ * the drawing, so each can be seen against the edge that was drawn. `lower` and
+ * `upper` are each stitch's edges in rows, as mesh/relax.ts and mesh/settle.ts
+ * give them; columns must be upright (fabric that lies flat as a rectangle).
+ */
+export function edgesOf(
+  fabric: Fabric,
+  lower: readonly (readonly number[])[],
+  upper: readonly (readonly number[])[],
+  colourOf: (strand: Yarn) => Yarn,
+): Edge[] {
+  const edges: Edge[] = [];
+  const ridges = (rows: number) => (rows - BOTTOM_EDGE) / 2;
+
+  // Across each column: wherever one colour stops and another starts.
+  fabric.stacks.forEach((stack, i) => {
+    for (let k = 0; k + 1 < stack.length; k++) {
+      if (colourOf(stack[k]) !== colourOf(stack[k + 1])) edges.push({ kind: "across", column: i, at: ridges(upper[i][k]) });
+    }
+  });
+
+  // Up the line between two columns: wherever they differ at the same height.
+  const colourAt = (i: number, height: number): Yarn | null => {
+    const k = fabric.stacks[i].findIndex((_, r) => lower[i][r] <= height && height < upper[i][r]);
+    return k < 0 ? null : colourOf(fabric.stacks[i][k]);
+  };
+  for (let i = 0; i + 1 < fabric.stacks.length; i++) {
+    const breaks = [...new Set([...lower[i], ...upper[i], ...lower[i + 1], ...upper[i + 1]])].sort((a, b) => a - b);
+    let open: { from: number; to: number } | null = null;
+    for (let b = 0; b + 1 < breaks.length; b++) {
+      // Two columns' edges at the same height differ by rounding only.
+      if (breaks[b + 1] - breaks[b] < SAME_HEIGHT) continue;
+      const middle = (breaks[b] + breaks[b + 1]) / 2;
+      const here = colourAt(i, middle);
+      const there = colourAt(i + 1, middle);
+      if (here !== null && there !== null && here !== there) {
+        if (open) open.to = breaks[b + 1];
+        else open = { from: breaks[b], to: breaks[b + 1] };
+      } else if (open) {
+        edges.push({ kind: "up", after: i, from: ridges(open.from), to: ridges(open.to) });
+        open = null;
+      }
+    }
+    if (open) edges.push({ kind: "up", after: i, from: ridges(open.from), to: ridges(open.to) });
+  }
+  return edges;
 }

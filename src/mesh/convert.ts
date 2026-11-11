@@ -27,7 +27,7 @@ import { turnsOf } from "../methods/shortrow/rules";
 import { colourOfStrand } from "../methods/shortrow/writer";
 import type { Grid } from "../methods/shortrow/grid";
 import { relax, type Relaxed } from "./relax";
-import { lookOf } from "./look";
+import { lookOf, BOTTOM_EDGE } from "./look";
 
 export interface Physics {
   yarnPull: number;
@@ -207,7 +207,7 @@ function missBy(columns: Runs[], drawnAt: number[][], height: number, physics: P
     let at = 0;
     return runs.slice(0, -1).map((run, j) => {
       at += run.ridges;
-      const o = drawnAt[c][j] - relaxed.lower[c][2 * at] / 2;
+      const o = drawnAt[c][j] - (relaxed.lower[c][2 * at] - BOTTOM_EDGE) / 2;
       total += o * o;
       return o;
     });

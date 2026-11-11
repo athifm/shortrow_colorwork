@@ -19,6 +19,10 @@ dist-ssr
 # GitHub; that's the accepted trade-off for material we shouldn't redistribute.
 research/
 
+# Your review of the test shapes, written by the dev server from the Draw
+# tab (vite.config.ts). Yours, and read from here; not published.
+review/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
