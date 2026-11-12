@@ -590,4 +590,25 @@ AABBBAAA
 AABBBAAA
 AAAAAAAA`,
   },
+  {
+    id: "E23",
+    name: "a bar inside a shape, the shape two stitches wide each side",
+    carry: 1,
+    grid: `AAAAAAAAAAAA
+AAAAABBAAAAA
+AAABBCCBBAAA
+AABBBBBBBBAA
+AAAAAAAAAAAA`,
+  },
+  {
+    id: "E24",
+    name: "a small lens inside a shape",
+    carry: 1,
+    grid: `AAAAAAAAAA
+AAAABBAAAA
+AAABBCBAAA
+AABBCCCBAA
+AAABBBBAAA
+AAAAAAAAAA`,
+  },
 ];

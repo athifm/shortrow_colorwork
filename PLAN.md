@@ -423,7 +423,9 @@ yarn waits; "far end" its left, where it turns.
 | touching the top edge | 2 | E9 |
 | …with a ridge of background above | 0 | E10 |
 | touching the cast-on; far end at the fabric's left edge | 0 | E18, E19 |
-| a shape inside a shape (three ways tried) | 1 | E11–E13 |
+| a one-ridge bar inside a shape one ridge thick around it (three ways tried) | 1 | E11–E13 |
+| …with the outer shape two stitches wide each side | 1 | E23 |
+| a small lens inside a shape | 1 | E24 |
 | two shapes one above the other | 0, one ball | E15 |
 | two shapes side by side | impossible with one ball; 0 with a ball each | E14 |
 | a tail, at either end | 2 | E16, E17 |
@@ -436,16 +438,27 @@ What it says about the laws:
 - **Slope** is a far-end law: steeper than a stitch a ridge costs a carry of 2
   (E22); shallower is free (E21).
 - **Top edge** is a real law, cured by a ridge of background above (E9, E10).
-- **A shape inside a shape always costs a carry of 1** in every version tried
-  (E11–E13). New: no law said so.
+- **A shape inside a shape is not, of itself, a cost**: your blob inside a blob
+  (S13) knits with one ball each and no carry at all. The three small probes
+  that need a carry of 1 (E11–E13) all have a one-ridge inner bar inside an
+  outer shape one ridge thick around it; which of those features costs the
+  carry is not yet known. (First written as "always costs a carry of 1" —
+  wrong; corrected 2026-11-12 after you pointed at S13.)
+  Changing one thing at a time from E11 didn't find it: a wider outer shape
+  (E23) and a lens for the inner shape (E24) still need a carry of 1, for
+  certain. An inner shape two ridges tall, or the outer two ridges thick
+  above or below, needs at most 2 — whether 0 or 1 would do, those drawings
+  (six ridges) are too big to settle. So the free knitting of S13 comes from
+  something else it has: it is bigger in every direction at once. Next: work
+  down from S13, shrinking it until the carry appears.
 - **One ball can serve shapes stacked one above the other, never side by
   side** (E14, E15). New.
 - **The builder misses ways that exist**: it gets stuck on E11, E15, E16 and
   E17, where the checker found a knitting. Builder gaps, not edges.
 
 Open question for you: is a carry of 1 or 2 stitches good enough to count as
-short-row colorwork, or only as a fallback? It decides whether a shape inside a
-shape is "the book's way".
+short-row colorwork, or only as a fallback? It may not matter for shapes inside
+shapes like yours, which need none — to be settled by the probes first.
 
 **Steps:**
 
