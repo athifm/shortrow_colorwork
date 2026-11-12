@@ -51,7 +51,8 @@
   import ReviewBar from "./ReviewBar.svelte";
   import { loadReview, saveReview, type Review, type ReviewEntry } from "./review";
   import { simulate, type Pass } from "../methods/shortrow/passes";
-  import { PROBES, SHAPES } from "../methods/shortrow/probes";
+  import { PROBES, SHAPES, EDGES } from "../methods/shortrow/probes";
+  import { canKnit, type Answer } from "../methods/shortrow/oracle";
 
   let {
     colourOf,
@@ -179,7 +180,7 @@
 
   /** A test shape, a probe or a shape of your own — your redraw of it, if you saved one. */
   function loadShape(id: string) {
-    const probe = [...SHAPES, ...PROBES].find((p) => p.id === id);
+    const probe = [...SHAPES, ...EDGES, ...PROBES].find((p) => p.id === id);
     const entry = review.entries[id];
     const saved = entry?.grid && (entry.verdict === "redrawn" || entry.mine) ? entry.grid : null;
     const text = saved ?? (probe ? probe.grid.split("\n").map(toLetters).join("\n") : null);
@@ -323,6 +324,24 @@
     tip: { mark: "3", name: "Tip", rule: "a shape ends in a point one ridge thick, not a straight side" },
     "one piece": { mark: "6", name: "One piece", rule: "a shape has one stretch of its colour in each column" },
   };
+  // The try-everything checker (oracle.ts): only on request, and only as
+  // far as it can go in a few seconds — it is certain for small drawings,
+  // and says so when a drawing is too big for it.
+  const TRY_STATES = 1_500_000;
+  const TRY_MS = 5000;
+  let tried = $state<{ key: string; answer: Answer } | null>(null);
+  let trying = $state(false);
+  const triedNow = $derived(worked && tried?.key === worked.key ? tried.answer : null);
+  function tryEverything() {
+    if (!worked) return;
+    const { key, grid: g } = worked;
+    trying = true;
+    setTimeout(() => {
+      tried = { key, answer: canKnit(g, { maxStates: TRY_STATES, deadline: performance.now() + TRY_MS }) };
+      trying = false;
+    }, 20);
+  }
+
   /** Would more room cure it? The laws checked again on the drawing made
    *  wider, and bigger — where that still fits the editor. */
   const withRoom = $derived.by(() => {
@@ -535,6 +554,11 @@
               {#each mine as e (e.id)}<option value={e.id}>{e.name}</option>{/each}
             </optgroup>
           {/if}
+          <optgroup label="Edge probes (try everything)">
+            {#each EDGES as p (p.id)}
+              <option value={p.id}>{p.id} {p.name} — {p.carry === 0 ? "the book's way" : `needs a carry of ${p.carry}`}</option>
+            {/each}
+          </optgroup>
           <optgroup label="Old probes (regression tests)">
             {#each PROBES as p (p.id)}<option value={p.id}>{p.id} {p.name}</option>{/each}
           </optgroup>
@@ -700,6 +724,41 @@
               {#each breaches as b, k (k)}<li>{b.why}</li>{/each}
             </ul>
           </details>
+        {/if}
+      </div>
+
+      <div class="laws" class:stale>
+        <p class="note">
+          <strong>Try everything.</strong> Not the builder's recipes: every order of rows the knitting allows, with
+          one ball to each colour. Certain for small drawings; on a big one it gives up after five seconds.
+          <button type="button" class="link" onclick={tryEverything} disabled={trying || stale}>
+            {trying ? "Trying…" : "Try everything"}
+          </button>
+        </p>
+        {#if triedNow}
+          <p class="note">
+            {#if triedNow.answer === "yes" && triedNow.carry === 0}
+              <strong>✓ It can be knitted the book's way</strong> — one ball to each colour, every yarn starting where
+              it stopped.
+            {:else if triedNow.answer === "yes"}
+              <strong>Only with a yarn carried {triedNow.carry} {triedNow.carry === 1 ? "stitch" : "stitches"} across
+              the back.</strong>
+              {triedNow.carryCertain
+                ? "With less, there is no way at all: that is certain."
+                : "It may be possible with less: the drawing is too big to be sure."}
+            {:else if triedNow.answer === "no"}
+              <strong>✗ It can't be knitted with one ball to each colour</strong>, even carrying a yarn two stitches.
+              That is certain.
+            {:else}
+              <strong>Can't say.</strong> No way was found, but the drawing is too big to try everything.
+            {/if}
+            ({triedNow.states.toLocaleString()} positions tried.)
+            {#if triedNow.passes}
+              <button type="button" class="link" onclick={() => triedNow.passes && knit(triedNow.passes)}>
+                Open that knitting in the pattern lab
+              </button>
+            {/if}
+          </p>
         {/if}
       </div>
 

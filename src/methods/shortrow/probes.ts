@@ -362,3 +362,108 @@ AAAAAABBAAAAAA
 AAAAAABBAAAAAA`,
   },
 ];
+
+/**
+ * Edge probes (PLAN.md §6): the smallest drawings that each ask one question
+ * about what short rows can knit, with the answer the try-everything checker
+ * (oracle.ts) proved: the least a yarn must be carried for the drawing to be
+ * knitted with one ball to each colour. 0 is the book's own way.
+ *
+ * Column 1, where every ridge starts, is at the right: the right-hand end of a
+ * shape is its near end, where its yarn waits; the left is its far end, where
+ * it turns.
+ */
+export const EDGES: (Probe & { carry: number })[] = [
+  {
+    id: "E1",
+    name: "blunt near end, far end a point",
+    carry: 0,
+    grid: `AAAAAAAA
+AAABBAAA
+AABBBAAA
+AAAAAAAA`,
+  },
+  {
+    id: "E2",
+    name: "blunt far end (E1 mirrored)",
+    carry: 2,
+    grid: `AAAAAAAA
+AAABBAAA
+AAABBBAA
+AAAAAAAA`,
+  },
+  {
+    id: "E3",
+    name: "blunt near end, far end widening upwards",
+    carry: 0,
+    grid: `AAAAAAAA
+AABBBAAA
+AAABBAAA
+AAAAAAAA`,
+  },
+  {
+    id: "E4",
+    name: "far end straight for two ridges",
+    carry: 2,
+    grid: `AAAAAAAA
+AABBBAAA
+AABBBAAA
+AAAAAAAA`,
+  },
+  {
+    id: "E5",
+    name: "notch in the far side",
+    carry: 2,
+    grid: `AAAAAAAA
+AABBBBAA
+AAAABBAA
+AABBBBAA
+AAAAAAAA`,
+  },
+  {
+    id: "E6",
+    name: "lens, a stitch a ridge at both ends, top two wide",
+    carry: 0,
+    grid: `AAAAAAAAAA
+AAAABBAAAA
+AAABBBBAAA
+AABBBBBBAA
+AAAAAAAAAA`,
+  },
+  {
+    id: "E7",
+    name: "the same upside down",
+    carry: 0,
+    grid: `AAAAAAAAAA
+AABBBBBBAA
+AAABBBBAAA
+AAAABBAAAA
+AAAAAAAAAA`,
+  },
+  {
+    id: "E8",
+    name: "peak one stitch wide, points at both ends",
+    carry: 1,
+    grid: `AAAAAAAA
+AAABAAAA
+AABBBAAA
+AAAAAAAA`,
+  },
+  {
+    id: "E9",
+    name: "shape touching the top edge",
+    carry: 2,
+    grid: `AAABBBAAA
+AABBBBBAA
+AAAAAAAAA`,
+  },
+  {
+    id: "E10",
+    name: "the same with a ridge of background above",
+    carry: 0,
+    grid: `AAAAAAAAA
+AAABBBAAA
+AABBBBBAA
+AAAAAAAAA`,
+  },
+];
