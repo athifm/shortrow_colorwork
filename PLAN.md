@@ -122,6 +122,7 @@ until it's measured.
 | `methods/shortrow/round.ts`, `steep.ts` | rounding where turns crowd; the steep-diagonal choice |
 | `methods/shortrow/units.ts` | blobs fitted to short-row units, three ways (§6) |
 | `methods/shortrow/laws.ts` | the laws of short-row construction, checked on a drawing (§6) |
+| `methods/shortrow/scale.ts` | a drawing made bigger or wider, edges redrawn smoothly (§6) |
 | `methods/shortrow/grid.ts`, `probes.ts` | the grid notation; the probe drawings |
 | `mesh/settle.ts`, `relax.ts` | the fabric's shape and its bent ridges |
 | `mesh/look.ts`, `convert.ts` | a plan's look on the drawing's grid; look → plan, cell by cell |
@@ -377,6 +378,27 @@ Fewest balls wins, then nearest look.
   (the crossbar reaching the top splits the background: 2 intarsia-style
   rows, step 5). Two of S15's three fitted ways, and S16's, still break the
   laws themselves (test marked failing).
+
+**Step 4 done, 2026-11-12** (`scale.ts`). Under the drawing: **Bigger ×2**
+and **Wider ×2**. Edges are redrawn smoothly, not doubled cell by cell — a
+slope stays a slope, a point stays a point. The laws box says whether more
+room would cure a drawing ("Wider ×2: helps — 2 places left"). The builder
+now gives up after about six seconds on one drawing, so a big one can't freeze
+the page.
+
+What scaling showed, law by law:
+
+| Cure | What it cures | Shapes |
+|---|---|---|
+| Wider ×2 | **slope** (too steep), and with it blunt ends and one-stitch bumps | cures outright: oval, blob at the edge, blob inside a blob, leaf. Teardrop: 7 broken places → 2, then knits the book's way with 6 of 252 stitches changed |
+| Wider ×2 | not enough when more than twice too steep | your fish: 15 places → 7, still no book's way |
+| Bigger ×2 | nothing that is too steep (as expected); keeps the laws where they were kept | the 12 approved shapes; cures none of the open ones |
+| neither | a shape made of pieces that touch corner to corner | fish with a tail: still stuck |
+| neither | **a shape touching the top edge** | your T, widened, keeps every law on the list and still has no book's way: the crossbar splits the background in two (L18). A law is missing here — step 5 |
+
+Open, found here: your blob with two colours inside, **widened**, fits with
+2–4 stitches changed but the builder gets stuck on it (two turns on one
+stitch, column 25) — it knits at its drawn size. A clean case for the builder.
 
 **Steps:**
 

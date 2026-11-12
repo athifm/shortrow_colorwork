@@ -43,6 +43,7 @@
   import { predictionOf, versionsOf, type Version, type Way } from "../mesh/fit";
   import type { UnitKind } from "../methods/shortrow/units";
   import { checkLaws, type Law } from "../methods/shortrow/laws";
+  import { widen, enlarge } from "../methods/shortrow/scale";
   import { yarnPull, doubleStitchStiffness, stitchAspect, smallestBump, flatnessThreshold } from "../model/physical";
   import { describeShape } from "../mesh/settle";
   import FabricView from "./FabricView.svelte";
@@ -139,6 +140,14 @@
       }
     }
     rows = next;
+  }
+
+  /** The drawing made bigger or wider (scale.ts), edges redrawn smoothly:
+   *  to try whether a shape only needs more room. */
+  function rescale(how: (g: Grid) => Grid) {
+    const g = parseGrid(rows.map((r) => r.join("")).join("\n")).grid;
+    if (!g) return;
+    rows = [...how(g).cells].reverse().map((row) => [...row].reverse());
   }
 
   function paint(r: number, c: number) {
@@ -314,6 +323,16 @@
     tip: { mark: "3", name: "Tip", rule: "a shape ends in a point one ridge thick, not a straight side" },
     "one piece": { mark: "6", name: "One piece", rule: "a shape has one stretch of its colour in each column" },
   };
+  /** Would more room cure it? The laws checked again on the drawing made
+   *  wider, and bigger — where that still fits the editor. */
+  const withRoom = $derived.by(() => {
+    if (!worked || breaches.length === 0) return [];
+    const g = worked.grid;
+    const tries: { name: string; places: number }[] = [];
+    if (g.width * 2 <= MAX_W) tries.push({ name: "Wider ×2", places: checkLaws(widen(g)).length });
+    if (g.width * 2 <= MAX_W && g.height * 2 <= MAX_H) tries.push({ name: "Bigger ×2", places: checkLaws(enlarge(g)).length });
+    return tries;
+  });
   const brokenLaws = $derived(
     (Object.keys(LAWS) as Law[])
       .map((law) => ({ law, places: breaches.filter((b) => b.law === law).length }))
@@ -616,6 +635,20 @@
         {workingOut ? "Working it out…" : "Work out the knitting"}
       </button>
       <button type="button" class="plain" onclick={() => (rows = blank(width, height))}>Clear</button>
+      <button
+        type="button"
+        class="plain"
+        title="Twice the stitches and twice the ridges: the same picture, with more room for small details"
+        onclick={() => rescale(enlarge)}
+        disabled={width * 2 > MAX_W || height * 2 > MAX_H}>Bigger ×2</button
+      >
+      <button
+        type="button"
+        class="plain"
+        title="Twice the stitches, the same ridges: every slope half as steep"
+        onclick={() => rescale(widen)}
+        disabled={width * 2 > MAX_W}>Wider ×2</button
+      >
     </div>
   </section>
 
@@ -647,6 +680,20 @@
               </li>
             {/each}
           </ul>
+          {#if withRoom.length > 0}
+            <p class="note">
+              <strong>Would more room cure it?</strong>
+              {#each withRoom as t (t.name)}
+                {t.name}:
+                {t.places === 0
+                  ? "keeps all the laws."
+                  : t.places < breaches.length
+                    ? `helps — ${t.places} ${t.places === 1 ? "place" : "places"} left.`
+                    : `no — ${t.places} ${t.places === 1 ? "place" : "places"}.`}
+              {/each}
+              The buttons are under your drawing.
+            </p>
+          {/if}
           <details>
             <summary>Every place, one by one</summary>
             <ul>
@@ -1194,6 +1241,7 @@
   }
   .actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 10px;
   }
@@ -1225,6 +1273,7 @@
     cursor: pointer;
   }
   .knit:disabled,
+  .plain:disabled,
   .link:disabled {
     opacity: 0.5;
     cursor: not-allowed;

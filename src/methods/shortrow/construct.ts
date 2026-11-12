@@ -104,8 +104,16 @@ class Refused extends Error {}
 
 
 /** `recipes: "first"` tries only the recipes as they were first written —
- *  quicker to give up, for searches that build many drawings (round.ts). */
-export function knitShortRows(grid: Grid, { recipes = "all" }: { recipes?: "all" | "first" } = {}): Built {
+ *  quicker to give up, for searches that build many drawings (round.ts).
+ *  `allowMs`: stop trying after this long — a big drawing can take the search
+ *  many seconds to exhaust. */
+export function knitShortRows(grid: Grid, { recipes = "all", allowMs }: { recipes?: "all" | "first"; allowMs?: number } = {}): Built {
+  const started = performance.now();
+  let timedOut = false;
+  const outOfTime = () => {
+    if (allowMs !== undefined && performance.now() - started > allowMs) timedOut = true;
+    return timedOut;
+  };
   const N = grid.width;
   const H = grid.height;
   const { regionOf, regions } = regionsOf(grid, recipes === "all");
@@ -284,7 +292,7 @@ export function knitShortRows(grid: Grid, { recipes = "all" }: { recipes?: "all"
     }
 
     function* phases(s: State, i: number): Generator<State> {
-      if (++attempts > budget) return;
+      if (++attempts > budget || outOfTime()) return;
       const last = i === kids.length;
       // How many rows this phase must, and may, add in each column.
       const done = (c: Column) => s.progress[c - 1];
@@ -320,7 +328,7 @@ export function knitShortRows(grid: Grid, { recipes = "all" }: { recipes?: "all"
         const k = kids[i];
         const holders = new Map(busy).set(ball, { region: X, resume: phaseStart(i + 1).at });
         for (const s3 of trip(s2, k, entry(k), holders)) yield* phases(s3, i + 1);
-        if (attempts > budget) return;
+        if (attempts > budget || timedOut) return;
       }
       if (shapes === 0) {
         const cols = min.map((m, c) => (m > 0 ? c + 1 : 0)).filter((c) => c > 0);
@@ -382,6 +390,7 @@ export function knitShortRows(grid: Grid, { recipes = "all" }: { recipes?: "all"
   } catch (e) {
     if (!(e instanceof Refused)) throw e;
   }
+  if (timedOut) return fail("Gave up: this drawing is too big for the builder to try every way in the time allowed.");
   return fail(
     deepest.reason
       ? `Couldn't build this with short rows yet. ${deepest.reason}`

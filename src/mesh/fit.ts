@@ -135,11 +135,20 @@ function version(
   };
 }
 
+/** How long the builder may spend on all the ways of one drawing before
+ *  giving up on those left: the Draw tab waits for every way, and a big
+ *  drawing can take the search many seconds. And the least any one way gets. */
+const ALLOW_MS = 6000;
+const ALLOW_EACH_MS = 500;
+
 /** The drawing as it is, then fitted to units each of three ways. */
 export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
-  const drawn = knitShortRows(drawing);
+  const deadline = performance.now() + ALLOW_MS;
+  const allowMs = () => Math.max(ALLOW_EACH_MS, deadline - performance.now());
+  const drawn = knitShortRows(drawing, { allowMs: allowMs() });
   const out: Version[] = [version("as drawn", drawing, drawing, [], drawn, physics)];
-  if (drawn.problems.length > 0 && drawn.stuck) {
+  // Nudging tries the builder on many drawings: only while there's time.
+  if (drawn.problems.length > 0 && drawn.stuck && performance.now() < deadline - ALLOW_MS / 2) {
     const rounded = roundForShortRows(drawing);
     if (rounded) out.push(version("nudged", drawing, rounded.grid, [], rounded.built, physics));
   }
@@ -149,7 +158,7 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
     let chosen: { fitted: ReturnType<typeof fitUnits>; built: Built } | null = null;
     for (const strict of [true, false]) {
       const fitted = fitUnits(drawing, softening, { strict });
-      const built = knitShortRows(fitted.plan);
+      const built = knitShortRows(fitted.plan, { allowMs: allowMs() });
       if (!chosen || built.problems.length === 0) chosen = { fitted, built };
       if (built.problems.length === 0) break;
     }
