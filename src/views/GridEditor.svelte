@@ -556,7 +556,9 @@
           {/if}
           <optgroup label="Edge probes (try everything)">
             {#each EDGES as p (p.id)}
-              <option value={p.id}>{p.id} {p.name} — {p.carry === 0 ? "the book's way" : `needs a carry of ${p.carry}`}</option>
+              <option value={p.id}>
+                {p.id} {p.name} — {p.carry === 0 ? "the book's way" : `needs a carry of ${p.carry}`}{p.balls ? " (two balls of B)" : ""}
+              </option>
             {/each}
           </optgroup>
           <optgroup label="Old probes (regression tests)">

@@ -373,7 +373,11 @@ AAAAAABBAAAAAA`,
  * shape is its near end, where its yarn waits; the left is its far end, where
  * it turns.
  */
-export const EDGES: (Probe & { carry: number })[] = [
+export const EDGES: (Probe & {
+  carry: number;
+  /** Balls allowed of a colour, where one isn't enough. */
+  balls?: Record<string, number>;
+})[] = [
   {
     id: "E1",
     name: "blunt near end, far end a point",
@@ -465,5 +469,125 @@ AAAAAAAAA`,
 AAABBBAAA
 AABBBBBAA
 AAAAAAAAA`,
+  },
+  {
+    id: "E11",
+    name: "a shape inside a shape",
+    carry: 1,
+    grid: `AAAAAAAAAA
+AAAABBAAAA
+AAABCCBAAA
+AABBBBBBAA
+AAAAAAAAAA`,
+  },
+  {
+    id: "E12",
+    name: "a shape inside a wider shape",
+    carry: 1,
+    grid: `AAAAAAAAAAAA
+AAAAABBAAAAA
+AAABBCCBBAAA
+AABBBBBBBBAA
+AAAAAAAAAAAA`,
+  },
+  {
+    id: "E13",
+    name: "a shape inside a shape, at its near end",
+    carry: 1,
+    grid: `AAAAAAAAAA
+AAAABBAAAA
+AAABBCCAAA
+AABBBBBBAA
+AAAAAAAAAA`,
+  },
+  {
+    id: "E14",
+    name: "two shapes side by side — a ball each",
+    carry: 0,
+    balls: { B: 2 },
+    grid: `AAAAAAAAAAA
+AABBAAABBAA
+ABBBAABBBAA
+AAAAAAAAAAA`,
+  },
+  {
+    id: "E15",
+    name: "two shapes one above the other — one ball",
+    carry: 0,
+    grid: `AAAAAAAA
+AAABBAAA
+AABBBAAA
+AAAAAAAA
+AAABBAAA
+AABBBAAA
+AAAAAAAA`,
+  },
+  {
+    id: "E16",
+    name: "a tail at the far end",
+    carry: 2,
+    grid: `AAAAAAAAAA
+ABBABBAAAA
+AABBBBBAAA
+ABBABBAAAA
+AAAAAAAAAA`,
+  },
+  {
+    id: "E17",
+    name: "a tail at the near end",
+    carry: 2,
+    grid: `AAAAAAAAAA
+AAAABBABBA
+AAABBBBBAA
+AAAABBABBA
+AAAAAAAAAA`,
+  },
+  {
+    id: "E18",
+    name: "touching the cast-on",
+    carry: 0,
+    grid: `AAAAAAAA
+AAABBAAA
+AABBBAAA`,
+  },
+  {
+    id: "E19",
+    name: "far end at the left edge of the fabric",
+    carry: 0,
+    grid: `AAAAAAAA
+BBBAAAAA
+BBBBAAAA
+AAAAAAAA`,
+  },
+  {
+    id: "E20",
+    name: "a C, open on the near side",
+    carry: 2,
+    grid: `AAAAAAAA
+AABBBBAA
+AABAAAAA
+AABBBBAA
+AAAAAAAA`,
+  },
+  {
+    id: "E21",
+    name: "far side stepping 2 stitches a ridge",
+    carry: 0,
+    grid: `AAAAAAAAAA
+AAAAABBAAA
+AAABBBBAAA
+ABBBBBBAAA
+AAAAAAAAAA`,
+  },
+  {
+    id: "E22",
+    name: "far side stepping a stitch every 2 ridges",
+    carry: 2,
+    grid: `AAAAAAAA
+AAABBAAA
+AAABBAAA
+AABBBAAA
+AABBBAAA
+AAAAAAAA`,
   },
 ];

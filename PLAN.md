@@ -400,6 +400,53 @@ Open, found here: your blob with two colours inside, **widened**, fits with
 2–4 stitches changed but the builder gets stuck on it (two turns on one
 stitch, column 25) — it knits at its drawn size. A clean case for the builder.
 
+**The edge map, 2026-11-12** (`oracle.ts`, probes `EDGES` in `probes.ts`). The
+try-everything checker proves, for a small drawing, the least a yarn must be
+carried for it to knit with one ball to each colour — 0 is the book's own way
+(every yarn starting where it stopped); 1 or 2 is allowed by L17 but isn't the
+book's. Certain for drawings up to about 10 stitches by 5 ridges; bigger ones
+it can't settle, so each question is asked with the smallest drawing that
+shows it. "Near end" is a shape's right-hand end, where its rows start and its
+yarn waits; "far end" its left, where it turns.
+
+| Feature | Least carry | Probe |
+|---|---|---|
+| blunt near end | 0 | E1 |
+| blunt far end | 2 | E2 |
+| far end straight for two ridges | 2 | E4 |
+| far side stepping 2 stitches a ridge | 0 | E21 |
+| far side stepping a stitch every 2 ridges (steeper) | 2 | E22 |
+| far side widening upwards | 0 | E3 |
+| notch in the far side; a C open on the near side | 2 | E5, E20 |
+| lens, a stitch a ridge both ends; the same upside down | 0 | E6, E7 |
+| peak one stitch wide | 1 | E8 |
+| touching the top edge | 2 | E9 |
+| …with a ridge of background above | 0 | E10 |
+| touching the cast-on; far end at the fabric's left edge | 0 | E18, E19 |
+| a shape inside a shape (three ways tried) | 1 | E11–E13 |
+| two shapes one above the other | 0, one ball | E15 |
+| two shapes side by side | impossible with one ball; 0 with a ball each | E14 |
+| a tail, at either end | 2 | E16, E17 |
+
+What it says about the laws:
+
+- **The far end carries the laws; the near end is free** — your leaf insight,
+  now proven (E1 against E2). The tip and bump laws must apply to the far end
+  only.
+- **Slope** is a far-end law: steeper than a stitch a ridge costs a carry of 2
+  (E22); shallower is free (E21).
+- **Top edge** is a real law, cured by a ridge of background above (E9, E10).
+- **A shape inside a shape always costs a carry of 1** in every version tried
+  (E11–E13). New: no law said so.
+- **One ball can serve shapes stacked one above the other, never side by
+  side** (E14, E15). New.
+- **The builder misses ways that exist**: it gets stuck on E11, E15, E16 and
+  E17, where the checker found a knitting. Builder gaps, not edges.
+
+Open question for you: is a carry of 1 or 2 stitches good enough to count as
+short-row colorwork, or only as a fallback? It decides whether a shape inside a
+shape is "the book's way".
+
 **Steps:**
 
 1. **Commit and push** what exists.

@@ -14,9 +14,9 @@ import { EDGES } from "./probes";
  */
 describe("the try-everything checker, on the edge probes", () => {
   for (const probe of EDGES) {
-    it(`${probe.id} ${probe.name}: ${probe.carry === 0 ? "the book's way" : `only with the yarn carried ${probe.carry}`}`, () => {
+    it(`${probe.id} ${probe.name}: ${probe.carry === 0 ? "the book's way" : `only with the yarn carried ${probe.carry}`}`, { timeout: 60_000 }, () => {
       const g = parseGrid(probe.grid).grid!;
-      const found = canKnit(g, { maxStates: 1_500_000 });
+      const found = canKnit(g, { balls: probe.balls, maxStates: 3_000_000 });
       expect(found.answer).toBe("yes");
       // Every shorter carry was ruled out for certain, not merely not found.
       expect(found.carryCertain).toBe(true);
@@ -32,8 +32,14 @@ describe("the try-everything checker, on the edge probes", () => {
       expect(fabric.balanced).toBe(true);
       fabric.stacks.forEach((stack, i) => stack.forEach((strand, k) => expect(colourOfStrand(strand)).toBe(g.cells[k >> 1][i])));
       expect(stackedTurns(fabric, read.passes, read.info.map((i) => i.endsInTurn))).toEqual([]);
-      // One ball to each colour.
-      expect(new Set(read.strands.map((s) => s.id)).size).toBe(new Set(g.cells.flat()).size);
+      // One ball to each colour, or as many as the probe allows.
+      const colours = [...new Set(g.cells.flat())];
+      expect(read.strands.length).toBe(colours.reduce((n, c) => n + (probe.balls?.[c] ?? 1), 0));
     });
   }
+
+  it("E14 two shapes side by side can't share one ball, even carried two stitches", () => {
+    const g = parseGrid(EDGES.find((e) => e.id === "E14")!.grid).grid!;
+    expect(canKnit(g, { maxStates: 3_000_000 }).answer).toBe("no");
+  });
 });
