@@ -16,8 +16,9 @@
  *    the shape sits in.
  *  - **bump**: none of those three is thicker in one column than in both its
  *    neighbours. A bump one stitch wide is two turns on one stitch (rule 1).
- *  - **tip**: short of the fabric's edge, a shape ends one ridge thick. A
- *    straight side is intarsia's.
+ *  - **tip**: at its far end — the left, where its yarn turns — short of the
+ *    fabric's edge, a shape ends one ridge thick. A straight side there is
+ *    intarsia's. Its near end may be blunt.
  *
  * These are the same conditions units.ts fits a shape to. The other two laws —
  * one ball per shape, and balance — are about the knitting, not the drawing:
@@ -104,11 +105,10 @@ export function checkLaws(grid: Grid): Breach[] {
     const under = (c: number) => at(c).bottom - floor(c);
     const over = (c: number) => ceiling(c) - at(c).top;
 
-    // Tips: where it ends short of the fabric's edge.
-    for (const [end, edge] of [
-      [from, 0],
-      [to, N - 1],
-    ]) {
+    // Tips: at its far end — the left, where its yarn turns — short of the
+    // fabric's edge. Its near end, where the rows start and its yarn waits,
+    // needs no turn, and may be blunt (proven: PLAN.md §6, edge map).
+    for (const [end, edge] of [[to, N - 1]]) {
       if (end === edge || thick(end) === 1) continue;
       breaches.push({
         law: "tip",

@@ -172,6 +172,7 @@ function fitOne(
   floor: number[],
   ceiling: number[],
   inside: boolean,
+  nearFree: boolean,
 ): { from: Column; to: Column; bottom: number[]; top: number[] } | null {
   const INF = Number.POSITIVE_INFINITY;
   const STEP = 1 / (N * H + 1);
@@ -242,8 +243,10 @@ function fitOne(
         const here = cost(c, b, t);
         if (here === INF) continue;
         const k = t - b;
-        // Start here: at the fabric's edge any thickness, else a tip.
-        if ((c === 0 || k === 1) && joins(c, c - 1, b, t)) dp[c][at(b, t, 0)] = before[c] + here;
+        // Start here: at the fabric's edge any thickness, else a tip — unless
+        // the near end is free (`nearFree`): this is the end the rows start
+        // from, where the yarn waits, and needs no turn.
+        if ((c === 0 || k === 1 || nearFree) && joins(c, c - 1, b, t)) dp[c][at(b, t, 0)] = before[c] + here;
         if (c > 0) {
           for (let db = -1; db <= 1; db++) {
             for (let dt = -1; dt <= 1; dt++) {
@@ -324,7 +327,11 @@ function kindOf(N: number, H: number, u: { from: Column; to: Column; bottom: num
 // --- Fitting a drawing ----------------------------------------------------------------
 
 /** Every blob fitted to its nearest unit, outermost first, under one softening. */
-export function fitUnits(grid: Grid, softening: Softening, { strict = true }: { strict?: boolean } = {}): Fitted {
+export function fitUnits(
+  grid: Grid,
+  softening: Softening,
+  { strict = true, nearFree = false }: { strict?: boolean; nearFree?: boolean } = {},
+): Fitted {
   const { width: N, height: H, cells } = grid;
   const { background, blobs, ownerOf } = blobsOf(grid);
 
@@ -392,7 +399,7 @@ export function fitUnits(grid: Grid, softening: Softening, { strict = true }: { 
         ceiling[parentUnit.from - 1 + i] = parentUnit.top[i];
       });
     }
-    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling, parentUnit !== undefined);
+    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling, parentUnit !== undefined, nearFree);
     if (!fit) {
       // Left as drawn.
       unfitted.push(blob.id);

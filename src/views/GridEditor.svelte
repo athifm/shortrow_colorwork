@@ -392,6 +392,7 @@
     grow: "The shape grows",
     "give way": "The background gives way",
     both: "Either way, fewest changes",
+    "ridge on top": "A ridge of background on top",
   };
   const WAY_HINT: Record<Way, string> = {
     "as drawn": "Every stitch as you drew it.",
@@ -399,6 +400,8 @@
     grow: "Stitches added in the shape's colour, none taken away.",
     "give way": "Stitches taken from the shape, none added.",
     both: "Added or taken, whichever changes the fewest stitches.",
+    "ridge on top":
+      "A shape touches the top edge, which short rows can't knit with one ball: one more ridge of background above it, fitted the closest way.",
   };
   const KIND_NAME: Record<UnitKind, string> = {
     stripe: "a stripe",
@@ -406,6 +409,13 @@
     peak: "a peak",
     lens: "a lens",
     "leaning stripe": "a leaning stripe",
+  };
+  /** How close its look is to the drawing: the share of the drawing's shape
+   *  cells — not the background — that come out the colour drawn. */
+  const closeness = (v: Version) => {
+    const background = v.drawing.cells[0][0];
+    const shape = v.drawing.cells.flat().filter((c) => c !== background).length || 1;
+    return Math.max(0, Math.round(100 - (100 * v.mismatch.length) / shape));
   };
   const unitsOf = (v: Version) => v.units.map((u) => `${KIND_NAME[u.kind]} in ${u.colour}`).join(", ");
 
@@ -810,7 +820,7 @@
                   <span>
                     {v.turns === 0 && intarsiaRows(v) > 0
                       ? "All hand-overs: intarsia, not short-row colorwork."
-                      : `Its look: ${v.mismatch.length} ${v.mismatch.length === 1 ? "cell differs" : "cells differ"} from your drawing.`}
+                      : `Its look: ${closeness(v)}% as you drew it — ${v.mismatch.length} ${v.mismatch.length === 1 ? "cell differs" : "cells differ"}.`}
                   </span>
                   {#if intarsiaRows(v) > 0}<span class="bad">{intarsiaNote(intarsiaRows(v))}</span>{/if}
                   {#if v.units.length > 0}<span>Found: {unitsOf(v)}.</span>{/if}
@@ -845,7 +855,7 @@
                 <strong>Against your drawing</strong> — the lines are where the colour edges will land. Where a line
                 leaves an edge you drew, the fabric will differ there.
               </p>
-              <div class="canvas">{@render landed(grid.cells, view.edges)}</div>
+              <div class="canvas">{@render landed(needle ? grid.cells : (chosen?.drawing.cells ?? grid.cells), view.edges)}</div>
             </div>
           {/if}
         {/if}

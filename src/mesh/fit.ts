@@ -75,10 +75,13 @@ export function predictionOf(stitches: number, built: readonly Pass[], physics: 
   return { written: written.text, passes, info, endsInTurn, fabric, shape, edges: upright ? edgesOf(fabric, lower, upper, colourOfStrand) : [], intarsiaRows };
 }
 
-export type Way = "as drawn" | "nudged" | Softening;
+export type Way = "as drawn" | "nudged" | Softening | "ridge on top";
 
 export interface Version {
   way: Way;
+  /** What it is compared against: the drawing — with a ridge added on top,
+   *  for "ridge on top". */
+  drawing: Grid;
   /** What to knit, and where it differs from the drawing. */
   plan: Grid;
   changed: Change[];
@@ -115,13 +118,14 @@ function version(
 ): Version {
   const changed = differences(plan.cells, drawing.cells);
   if (built.problems.length > 0) {
-    return { way, plan, changed, units, unfitted, built, turns: 0, balls: 0, prediction: null, look: null, mismatch: [] };
+    return { way, drawing, plan, changed, units, unfitted, built, turns: 0, balls: 0, prediction: null, look: null, mismatch: [] };
   }
   const prediction = predictionOf(plan.width, built.passes, physics);
   const { passes, endsInTurn, fabric } = prediction;
   const look = lookOf(fabric, passes, { ...physics, endsInTurn }, colourOfStrand)?.cells ?? null;
   return {
     way,
+    drawing,
     plan,
     changed,
     units,
@@ -141,7 +145,32 @@ function version(
 const ALLOW_MS = 6000;
 const ALLOW_EACH_MS = 500;
 
-/** The drawing as it is, then fitted to units each of three ways. */
+/** The book's way first, then the look nearest the drawing, then the fewest
+ *  stitches changed: how one version beats another. */
+function better(a: Version, b: Version): boolean {
+  const rank = (v: Version) => [
+    v.built.problems.length === 0 ? 0 : 1,
+    v.built.problems.length === 0 && (v.prediction?.intarsiaRows.length ?? 0) === 0 ? 0 : 1,
+    v.mismatch.length,
+    v.changed.length,
+  ];
+  const [x, y] = [rank(a), rank(b)];
+  for (let k = 0; k < x.length; k++) if (x[k] !== y[k]) return x[k] < y[k];
+  return false;
+}
+
+/** The drawing with a ridge of background added along the top — for a shape
+ *  touching the top edge, which can't be knitted the book's way without one
+ *  (PLAN.md §6, edge map). Null when nothing touches the top. */
+export function withRidgeOnTop(drawing: Grid): Grid | null {
+  const background = blobsOf(drawing).background;
+  const top = drawing.cells[drawing.height - 1];
+  if (top.every((c) => c === background)) return null;
+  return { width: drawing.width, height: drawing.height + 1, cells: [...drawing.cells, top.map(() => background)] };
+}
+
+/** The drawing as it is, then fitted to units each of three ways — and, when
+ *  a shape touches the top edge, the closest fit with a ridge added above. */
 export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
   const deadline = performance.now() + ALLOW_MS;
   const allowMs = () => Math.max(ALLOW_EACH_MS, deadline - performance.now());
@@ -152,24 +181,40 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
     const rounded = roundForShortRows(drawing);
     if (rounded) out.push(version("nudged", drawing, rounded.grid, [], rounded.built, physics));
   }
-  for (const softening of ["grow", "give way", "both"] as Softening[]) {
-    // The strict fit first; the looser one, nearer the drawing, if the
-    // builder can't knit the strict one.
-    let chosen: { fitted: ReturnType<typeof fitUnits>; built: Built } | null = null;
+
+  /** The closest version of one softening, of the fits on offer: strict or
+   *  loose about one-stitch bumps, and with the near end — where a shape's
+   *  rows start, and its yarn waits — tapered or left as drawn. */
+  const fitted = (target: Grid, softening: Softening, way: Way): Version => {
+    let best: Version | null = null;
     for (const strict of [true, false]) {
-      const fitted = fitUnits(drawing, softening, { strict });
-      const built = knitShortRows(fitted.plan, { allowMs: allowMs() });
-      if (!chosen || built.problems.length === 0) chosen = { fitted, built };
-      if (built.problems.length === 0) break;
+      for (const nearFree of [false, true]) {
+        const fit = fitUnits(target, softening, { strict, nearFree });
+        if (best && differences(best.plan.cells, fit.plan.cells).length === 0) continue;
+        const built = knitShortRows(fit.plan, { allowMs: allowMs() });
+        const unfitted = blobsOf(target)
+          .blobs.filter((b) => fit.unfitted.includes(b.id))
+          .flatMap((b) => b.cells.map((at) => ({ ridge: Math.floor(at / target.width), column: (at % target.width) + 1 })));
+        const v = version(way, target, fit.plan, fit.units, built, physics, unfitted);
+        if (!best || better(v, best)) best = v;
+      }
     }
-    const { fitted, built } = chosen!;
-    const unfitted = blobsOf(drawing)
-      .blobs.filter((b) => fitted.unfitted.includes(b.id))
-      .flatMap((b) => b.cells.map((at) => ({ ridge: Math.floor(at / drawing.width), column: (at % drawing.width) + 1 })));
-    const v = version(softening, drawing, fitted.plan, fitted.units, built, physics, unfitted);
+    return best!;
+  };
+
+  for (const softening of ["grow", "give way", "both"] as Softening[]) {
+    const v = fitted(drawing, softening, softening);
     const twin = out.find((o) => o.changed.length === v.changed.length && differences(o.plan.cells, v.plan.cells).length === 0);
     if (twin) v.sameAs = twin.sameAs ?? twin.way;
     out.push(v);
+  }
+
+  // A ridge of background on top, when a shape touches the top edge: the
+  // closest of its fits, compared against the drawing with that ridge added.
+  const taller = withRidgeOnTop(drawing);
+  if (taller) {
+    const tries = (["grow", "give way", "both"] as Softening[]).map((softening) => fitted(taller, softening, "ridge on top"));
+    out.push(tries.reduce((a, b) => (better(b, a) ? b : a)));
   }
   return out;
 }

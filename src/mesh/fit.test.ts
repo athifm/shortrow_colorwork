@@ -40,7 +40,7 @@ describe("versions", () => {
 
   // Where things stand, 2026-10-31: the shapes with at least one way to knit
   // them with short rows. The rest are the next work.
-  it("has a short-row way for most of the shapes", () => {
+  it("has a short-row way for most of the shapes", { timeout: 120_000 }, () => {
     const knits = SHAPES.filter((s) => versionsOf(shape(s.id), physics).some((v) => v.built.problems.length === 0 && v.turns > 0)).map((s) => s.id);
     expect(knits).toEqual(["S2", "S3", "S4", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17"]);
   });
@@ -89,12 +89,25 @@ describe("intarsia-style rows (PLAN.md §6): two balls of one colour in the same
 });
 
 describe("the book's way (PLAN.md §6, step 3): no row with two balls of one colour", () => {
-  // Where things stand, 2026-11-12. Open: the fish with a tail, your fish,
-  // your T.
-  it("exists for every shape but three", () => {
+  // Where things stand, 2026-11-13. Open: the fish with a tail, your fish.
+  // Your T has one, with a ridge of background added on top.
+  it("exists for every shape but two", { timeout: 120_000 }, () => {
     const without = SHAPES.filter(
       (s) => !versionsOf(shape(s.id), physics).some((v) => v.built.problems.length === 0 && v.prediction!.intarsiaRows.length === 0),
     ).map((s) => s.id);
-    expect(without).toEqual(["S5", "S16", "S17"]);
+    expect(without).toEqual(["S5", "S16"]);
+  });
+});
+
+describe("a ridge of background on top (PLAN.md §6, edge map)", () => {
+  it("is offered for your T, whose crossbar touches the top edge, and knits it the book's way", () => {
+    const ridge = versionsOf(shape("S17"), physics).find((v) => v.way === "ridge on top")!;
+    expect(ridge.drawing.height).toBe(shape("S17").height + 1);
+    expect(ridge.built.problems).toEqual([]);
+    expect(ridge.prediction!.intarsiaRows).toEqual([]);
+  });
+
+  it("isn't offered when nothing touches the top", () => {
+    expect(versionsOf(shape("S7"), physics).some((v) => v.way === "ridge on top")).toBe(false);
   });
 });

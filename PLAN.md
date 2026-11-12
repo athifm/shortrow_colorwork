@@ -460,6 +460,36 @@ Open question for you: is a carry of 1 or 2 stitches good enough to count as
 short-row colorwork, or only as a fallback? It may not matter for shapes inside
 shapes like yours, which need none — to be settled by the probes first.
 
+**Back to the big picture, 2026-11-13.** Tiny probes throw up problems that
+come from being tiny — everything one ridge from everything else — not from
+short rows (your call: lost in the weeds). The checker stays, for a real
+drawing that's stuck; no more probes for their own sake. Two edge-map
+findings hold at real size, and are now built in:
+
+- **The near end may be blunt.** The checker no longer asks for a point at a
+  shape's near end, and the fitter offers both: near end tapered, or left as
+  drawn. The Draw tab keeps whichever comes closer.
+- **A ridge of background on top.** For a shape touching the top edge, a card
+  "A ridge of background on top" with the closest fit of the taller drawing.
+
+Each card now says how close its look is: the share of the drawing's shape
+cells that come out the colour drawn. Closeness of the best book's way:
+
+| Shape | Before | Now |
+|---|---|---|
+| S8 teardrop | 55% | 71% |
+| S13 blob inside a blob | 82% | 86% |
+| S17 your T | no book's way | 85%, ridge on top, 3 balls |
+| every other shape | — | unchanged |
+| S5 fish with a tail, S16 your fish | no book's way | still none |
+
+Worth knowing: several shapes knitted exactly as drawn are well short of 100%
+— the leaning stripe 72%, the zigzag band 75%, your nested triangles 66%.
+That's bending: the fabric relaxing pulls the ridges flatter. Closer than that
+means knitting a plan that bends into the drawing — the old "draw the look"
+conversion (L3), set aside earlier. With today's guessed physics, so a
+prediction.
+
 **Steps:**
 
 1. **Commit and push** what exists.
