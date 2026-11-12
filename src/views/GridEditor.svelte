@@ -42,6 +42,7 @@
   import type { Edge } from "../mesh/look";
   import { predictionOf, versionsOf, type Version, type Way } from "../mesh/fit";
   import type { UnitKind } from "../methods/shortrow/units";
+  import { checkLaws, type Law } from "../methods/shortrow/laws";
   import { yarnPull, doubleStitchStiffness, stitchAspect, smallestBump, flatnessThreshold } from "../model/physical";
   import { describeShape } from "../mesh/settle";
   import FabricView from "./FabricView.svelte";
@@ -303,6 +304,22 @@
   const asSlope = $derived(sloped ? build(sloped.grid, sloped.changed) : null);
   const shortRows = $derived(steep.length === 0 || way === "vertical" ? asDrawn : way === "slope" ? asSlope : null);
 
+  // The laws of short-row construction (PLAN.md §6), checked on the drawing
+  // as it stands: where it breaks one, and which — the reason a shape can't
+  // be knitted the book's way as drawn.
+  const breaches = $derived(worked ? checkLaws(worked.grid) : []);
+  const LAWS: Record<Law, { mark: string; name: string; rule: string }> = {
+    slope: { mark: "1", name: "Slope", rule: "a shape gets thicker or thinner by one ridge per stitch at most" },
+    bump: { mark: "2", name: "One-stitch bump", rule: "a bump one stitch wide puts two turns on that stitch" },
+    tip: { mark: "3", name: "Tip", rule: "a shape ends in a point one ridge thick, not a straight side" },
+    "one piece": { mark: "6", name: "One piece", rule: "a shape has one stretch of its colour in each column" },
+  };
+  const brokenLaws = $derived(
+    (Object.keys(LAWS) as Law[])
+      .map((law) => ({ law, places: breaches.filter((b) => b.law === law).length }))
+      .filter((x) => x.places > 0),
+  );
+
   // Draw the look: the ways to knit it, side by side.
   const versions = $derived(worked?.mode === "look" ? versionsOf(worked.grid, physics) : null);
   const shown = $derived(versions ? versions.filter((v) => !v.sameAs) : []);
@@ -558,6 +575,17 @@
             />
           {/each}
         {/each}
+        <!-- Where the drawing breaks a law: the cell outlined, with the law's number. -->
+        {#each stale ? [] : breaches as b, k (k)}
+          {#each b.cells as cell (`${cell.ridge},${cell.column}`)}
+            {@const x = (width - cell.column) * CELL}
+            {@const y = (height - 1 - cell.ridge) * CELL}
+            <g class="law-mark" aria-hidden="true">
+              <rect x={x + 1} y={y + 1} width={CELL - 2} height={CELL - 2} />
+              <text x={x + CELL / 2} y={y + CELL / 2}>{LAWS[b.law].mark}</text>
+            </g>
+          {/each}
+        {/each}
         <!-- The way picked: a shape no unit fits, outlined, and where it gets stuck, ringed. -->
         {#each chosen && !stale ? chosen.unfitted : [] as u (`u${u.ridge},${u.column}`)}
           <rect class="unfit" x={(width - u.column) * CELL + 1.5} y={(height - 1 - u.ridge) * CELL + 1.5} width={CELL - 3} height={CELL - 3} />
@@ -595,6 +623,34 @@
           The drawing or the reading has changed since this was worked out. Press "Work out the knitting" again.
         </p>
       {/if}
+      <div class="laws" class:stale>
+        {#if breaches.length === 0}
+          <p class="note">
+            <strong>✓ Keeps the laws of short-row construction.</strong> It can be knitted the book's way as drawn.
+          </p>
+        {:else}
+          <p class="note">
+            <strong>Why it can't be knitted the book's way as drawn.</strong>
+            {breaches.length} {breaches.length === 1 ? "place breaks" : "places break"} a law, each marked on your
+            drawing with the law's number:
+          </p>
+          <ul>
+            {#each brokenLaws as { law, places } (law)}
+              <li>
+                <strong>{LAWS[law].mark} · {LAWS[law].name}</strong> — {LAWS[law].rule}. Broken in {places}
+                {places === 1 ? "place" : "places"}.
+              </li>
+            {/each}
+          </ul>
+          <details>
+            <summary>Every place, one by one</summary>
+            <ul>
+              {#each breaches as b, k (k)}<li>{b.why}</li>{/each}
+            </ul>
+          </details>
+        {/if}
+      </div>
+
       {#if versions && worked}
         <fieldset class="steep ways-to-knit" class:stale>
           <legend>Ways to knit it — pick one. Each shape is fitted to a short-row unit, three ways.</legend>
@@ -1048,6 +1104,44 @@
   }
   .changed {
     pointer-events: none;
+  }
+  .laws {
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .laws.stale {
+    opacity: 0.45;
+  }
+  .laws ul {
+    margin: 6px 0 0;
+    padding-left: 1.2em;
+    color: var(--ink);
+  }
+  .laws details {
+    margin-top: 6px;
+    color: var(--muted);
+  }
+  .laws summary {
+    cursor: pointer;
+  }
+  .law-mark {
+    pointer-events: none;
+  }
+  .law-mark rect {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.5;
+  }
+  .law-mark text {
+    fill: #fff;
+    stroke: #000;
+    stroke-width: 2.5;
+    paint-order: stroke;
+    font: 700 9px var(--sans);
+    text-anchor: middle;
+    dominant-baseline: central;
   }
   .unfit,
   .stuck {

@@ -121,6 +121,7 @@ until it's measured.
 | `methods/shortrow/construct.ts` | any grid with short rows: a tree of trips, one per patch |
 | `methods/shortrow/round.ts`, `steep.ts` | rounding where turns crowd; the steep-diagonal choice |
 | `methods/shortrow/units.ts` | blobs fitted to short-row units, three ways (§6) |
+| `methods/shortrow/laws.ts` | the laws of short-row construction, checked on a drawing (§6) |
 | `methods/shortrow/grid.ts`, `probes.ts` | the grid notation; the probe drawings |
 | `mesh/settle.ts`, `relax.ts` | the fabric's shape and its bent ridges |
 | `mesh/look.ts`, `convert.ts` | a plan's look on the drawing's grid; look → plan, cell by cell |
@@ -325,6 +326,35 @@ not the book's own wording; working the open shapes may add or change one:
    with its own short rows; the colour around it then knits across it with the
    same ball. No row uses two balls of one colour.
 5. **Balance.** The background fills in until every stitch has the same rows.
+6. **One piece.** A shape has one stretch of its colour in each column (found
+   while building the checker, 2026-11-12: a fork or a "C" has two).
+
+**Step 2 done, 2026-11-12** (`laws.ts`). The Draw tab checks laws 1, 2, 3 and
+6 on the drawing: a box says which are broken and in how many places, and each
+place is marked on the drawing with the law's number. Laws 4 and 5 are about
+the knitting; the builder keeps them and the cards count rows that don't.
+What the checker showed:
+
+- It agrees with the fitter on all 17 shapes: a drawing keeps the laws exactly
+  when the fitter has nothing to change. And every drawing that keeps them
+  knits as it stands.
+- **The laws are stricter than the truth in places.** The leaf (S9) breaks
+  "bump" twice and "tip" once, yet knits as drawn with no intarsia rows. So
+  keeping the laws is enough, but not always needed.
+  **Why, from you (2026-11-12):** the bump works because it is one stitch from
+  where that colour was last used — the yarn is waiting there. The leaf's
+  written rows bear it out: each ridge is one trip out and back, the pink
+  comes home to its right-hand end and waits, and the next ridge starts a
+  stitch or two away, carried. So the two ends of a shape differ: the **far
+  end**, where the yarn turns, needs the tip and no-bump laws; the **near
+  end**, where the yarn waits, can be straight, stepped or a one-stitch bump,
+  so long as each ridge starts within a short carry (2 stitches) of the last.
+  **Todo, later:** make laws 2 and 3 near/far-aware in the checker and the
+  fitter (which changes 3 stitches of the leaf for nothing), after testing the
+  idea on all 17 shapes — so far confirmed on the leaf only.
+- **Fitted shapes inside shapes break the laws themselves** (S13, S15, S16):
+  the inner shape can poke out of the outer or cut it in two. A known gap,
+  held by a test marked as failing, for step 3.
 
 **Steps:**
 
