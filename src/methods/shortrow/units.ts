@@ -171,6 +171,7 @@ function fitOne(
   strict: boolean,
   floor: number[],
   ceiling: number[],
+  inside: boolean,
 ): { from: Column; to: Column; bottom: number[]; top: number[] } | null {
   const INF = Number.POSITIVE_INFINITY;
   const STEP = 1 / (N * H + 1);
@@ -182,7 +183,7 @@ function fitOne(
   });
   const barredBelow = Array.from({ length: N }, (_, c) => {
     const out = [0];
-    for (let r = 0; r < H; r++) out.push(out[r] + (allowed(r, c) || mine(r, c) ? 0 : 1));
+    for (let r = 0; r < H; r++) out.push(out[r] + (allowed(r, c) ? 0 : 1));
     return out;
   });
   const absent = (c: number) => {
@@ -191,12 +192,25 @@ function fitOne(
   };
   const cost = (c: number, b: number, t: number) => {
     if (barredBelow[c][t] - barredBelow[c][b] > 0) return INF;
+    // Inside another shape, that shape keeps a ridge under it or over it:
+    // filling the whole of a column would cut the outer shape in two.
+    if (inside && b === floor[c] && t === ceiling[c]) return INF;
     const kept = mineBelow[c][t] - mineBelow[c][b];
     const added = t - b - kept;
     const lost = mineBelow[c][H] - kept;
     if (softening === "grow" && lost > 0) return INF;
     if (softening === "give way" && added > 0) return INF;
     return added + lost;
+  };
+
+  // Inside another shape, at this one's end: that shape's layers over and
+  // under it must meet its own stitches in the next column side to side, not
+  // corner to corner — or it would be cut in two there.
+  const joins = (c: number, beside: number, b: number, t: number) => {
+    if (!inside || beside < 0 || beside >= N || ceiling[beside] <= floor[beside]) return true;
+    const over = t === ceiling[c] || t < ceiling[beside];
+    const under = b === floor[c] || b > floor[beside];
+    return over && under;
   };
 
   // dp[c][state]: the least cost for columns up to c, with c spanned by
@@ -229,7 +243,7 @@ function fitOne(
         if (here === INF) continue;
         const k = t - b;
         // Start here: at the fabric's edge any thickness, else a tip.
-        if (c === 0 || k === 1) dp[c][at(b, t, 0)] = before[c] + here;
+        if ((c === 0 || k === 1) && joins(c, c - 1, b, t)) dp[c][at(b, t, 0)] = before[c] + here;
         if (c > 0) {
           for (let db = -1; db <= 1; db++) {
             for (let dt = -1; dt <= 1; dt++) {
@@ -241,6 +255,14 @@ function fitOne(
               const du = b - floor[c] - (pb - floor[c - 1]);
               const dv = ceiling[c] - t - (ceiling[c - 1] - pt);
               if (Math.abs(dk) > 1 || Math.abs(du) > 1 || Math.abs(dv) > 1) continue;
+              // Inside another shape, its layer under this one, and over it,
+              // stay in one piece from column to column: a layer one ridge
+              // thick that steps a ridge would touch only corner to corner.
+              if (inside) {
+                const underApart = pb > floor[c - 1] && b > floor[c] && Math.max(floor[c - 1], floor[c]) >= Math.min(pb, b);
+                const overApart = pt < ceiling[c - 1] && t < ceiling[c] && Math.max(pt, t) >= Math.min(ceiling[c - 1], ceiling[c]);
+                if (underApart || overApart) continue;
+              }
               const f = (du > 0 ? UNDER : 0) | (dv > 0 ? OVER : 0) | (dk > 0 ? OWN : 0);
               for (let pf = 0; pf < FLAGS; pf++) {
                 if (strict && ((pf & UNDER && du < 0) || (pf & OVER && dv < 0) || (pf & OWN && dk < 0))) continue;
@@ -256,7 +278,7 @@ function fitOne(
           }
         }
         // End here: at the fabric's edge any thickness, else a tip.
-        if (c === N - 1 || k === 1) {
+        if ((c === N - 1 || k === 1) && joins(c, c + 1, b, t)) {
           for (let f = 0; f < FLAGS; f++) {
             const v = dp[c][at(b, t, f)];
             if (v < INF && v + after[c + 1] < best) {
@@ -344,9 +366,12 @@ export function fitUnits(grid: Grid, softening: Softening, { strict = true }: { 
         [r, c + 1],
         [r, c - 1],
       ].some(([nr, nc]) => nr >= 0 && nr < H && nc >= 0 && nc < N && (twin(ownerOf[nr * N + nc]) || twin(taken[nr * N + nc])));
+    const parentUnit = units.find((u) => u.blob === blob.parent);
     const allowed = (r: number, c: number) => {
       const at = r * N + c;
-      if (mine(r, c)) return blob.parent === null ? true : inParent(at) || taken[at] === -1;
+      // Mine: anywhere, for an outermost shape; inside another, only where
+      // that shape's unit is — the inner never pokes out of the outer.
+      if (mine(r, c)) return blob.parent === null || !parentUnit ? true : taken[at] === blob.parent;
       // Not mine: free background or the parent's own stitches, and nobody
       // else's unit — siblings keep their space.
       const owner = ownerOf[at];
@@ -358,14 +383,16 @@ export function fitUnits(grid: Grid, softening: Softening, { strict = true }: { 
     // or the whole height of the fabric.
     const floor = Array.from({ length: N }, () => 0);
     const ceiling = Array.from({ length: N }, () => H);
-    const parentUnit = units.find((u) => u.blob === blob.parent);
     if (parentUnit) {
+      // Outside the columns of the shape it sits in: nothing to sit in.
+      floor.fill(0);
+      ceiling.fill(0);
       parentUnit.bottom.forEach((b, i) => {
         floor[parentUnit.from - 1 + i] = b;
         ceiling[parentUnit.from - 1 + i] = parentUnit.top[i];
       });
     }
-    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling);
+    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling, parentUnit !== undefined);
     if (!fit) {
       // Left as drawn.
       unfitted.push(blob.id);

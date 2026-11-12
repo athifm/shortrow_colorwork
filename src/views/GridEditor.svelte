@@ -327,19 +327,24 @@
   const intarsiaRows = (v: Version) => v.prediction?.intarsiaRows.length ?? 0;
   const intarsiaNote = (n: number) =>
     `${n} ${n === 1 ? "row is" : "rows are"} intarsia-style: a colour stops for another and carries on beyond it from a second ball.`;
-  /** Picked to start with: the short-row way with the fewest intarsia-style
-   *  rows, then the one whose look is nearest the drawing, fewest stitches
-   *  changed on a tie; else the drawing as it is. */
+  /** The book's way (PLAN.md §6, law 4): no row with two balls of one
+   *  colour. Only such a way is ever suggested. */
+  const bookWay = (v: Version) => knits(v) && intarsiaRows(v) === 0;
+  /** Suggested: the book's way with the fewest balls, then the one whose
+   *  look is nearest the drawing, fewest stitches changed on a tie. None, if
+   *  no way keeps to the book. */
   const suggested = $derived.by((): Way | null => {
     if (!versions) return null;
-    const ok = shown.filter((v) => knits(v) && v.turns > 0);
-    ok.sort((a, b) => intarsiaRows(a) - intarsiaRows(b) || a.mismatch.length - b.mismatch.length || a.changed.length - b.changed.length);
-    return ok[0]?.way ?? "as drawn";
+    const ok = shown.filter(bookWay);
+    ok.sort((a, b) => a.balls - b.balls || a.mismatch.length - b.mismatch.length || a.changed.length - b.changed.length);
+    return ok[0]?.way ?? null;
   });
   let wayPick = $state<{ key: string; way: Way } | null>(null);
+  /** Shown large: the way you picked; else the suggestion; else the first
+   *  that knits at all, so there's something to look at. */
   const chosen = $derived.by(() => {
     if (!versions || !worked) return null;
-    const w = wayPick?.key === worked.key ? wayPick.way : suggested;
+    const w = wayPick?.key === worked.key ? wayPick.way : (suggested ?? shown.find(knits)?.way ?? "as drawn");
     return versions.find((v) => v.way === w) ?? null;
   });
 
@@ -654,6 +659,12 @@
       {#if versions && worked}
         <fieldset class="steep ways-to-knit" class:stale>
           <legend>Ways to knit it — pick one. Each shape is fitted to a short-row unit, three ways.</legend>
+          {#if suggested === null}
+            <p class="warn">
+              No way found yet to knit this the book's way — with short rows, and one ball to each shape.
+              {breaches.length > 0 ? "The box above says what in the drawing stops it." : ""}
+            </p>
+          {/if}
           <div class="ways">
             {#each shown as v (v.way)}
               {@const twins = versions.filter((o) => o.sameAs === v.way).map((o) => WAY_NAME[o.way].toLowerCase())}
@@ -664,7 +675,12 @@
                 onclick={() => (wayPick = { key: worked.key, way: v.way })}
               >
                 {@render thumb(v.plan.cells, v.changed)}
-                <strong>{WAY_NAME[v.way]}{v.way === suggested && knits(v) ? " (suggested)" : ""}</strong>
+                <strong>{WAY_NAME[v.way]}{v.way === suggested ? " (suggested)" : ""}</strong>
+                {#if bookWay(v)}
+                  <span class="badge book">The book's way</span>
+                {:else if knits(v)}
+                  <span class="badge">{v.turns === 0 ? "Intarsia" : "Intarsia in part"} — not the book's way</span>
+                {/if}
                 <span>{WAY_HINT[v.way]}{twins.length > 0 ? ` The same as: ${twins.join(", ")}.` : ""}</span>
                 {#if !knits(v)}
                   <span class="bad">
@@ -684,11 +700,11 @@
                     {v.balls} balls ({v.balls * 2} ends) · {v.turns} {v.turns === 1 ? "turn" : "turns"}
                   </span>
                   <span>
-                    {v.turns === 0
+                    {v.turns === 0 && intarsiaRows(v) > 0
                       ? "All hand-overs: intarsia, not short-row colorwork."
                       : `Its look: ${v.mismatch.length} ${v.mismatch.length === 1 ? "cell differs" : "cells differ"} from your drawing.`}
                   </span>
-                  {#if v.turns > 0 && intarsiaRows(v) > 0}<span class="bad">{intarsiaNote(intarsiaRows(v))}</span>{/if}
+                  {#if intarsiaRows(v) > 0}<span class="bad">{intarsiaNote(intarsiaRows(v))}</span>{/if}
                   {#if v.units.length > 0}<span>Found: {unitsOf(v)}.</span>{/if}
                 {/if}
               </button>
@@ -1072,6 +1088,17 @@
   }
   .bad {
     color: var(--bad) !important;
+  }
+  .badge {
+    align-self: flex-start;
+    padding: 1px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--bad);
+    color: var(--bad) !important;
+  }
+  .badge.book {
+    border-color: var(--accent);
+    color: var(--ink) !important;
   }
   .thumb-changed {
     fill: none;

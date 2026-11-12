@@ -44,12 +44,29 @@ describe("the laws", () => {
     }
   });
 
-  // Known gap, found by this checker (2026-11-12): fitting a shape inside a
-  // shape, the inner one can poke out of the outer or cut it in two, so the
-  // fitted plan breaks the laws itself. For "the book's method only"
-  // (PLAN.md §6, step 3).
-  it.fails("are kept by fitted shapes inside shapes too", () => {
-    for (const id of ["S13", "S15", "S16"]) {
+  it("are kept by a fitted shape inside a shape: the blob inside a blob, every way", () => {
+    for (const softening of ["grow", "give way", "both"] as Softening[]) {
+      const fitted = fitUnits(shape("S13"), softening);
+      expect(checkLaws(fitted.plan), softening).toEqual([]);
+      // One ball each: the background, the blob, the blob inside it.
+      const built = knitShortRows(fitted.plan);
+      expect(built.problems, softening).toEqual([]);
+      expect(built.strands.map((b) => b.id).sort(), softening).toEqual(["A", "B", "C"]);
+    }
+  });
+
+  it("your blob with two colours inside, fitted, knits with one ball to each colour", () => {
+    const fitted = fitUnits(shape("S15"), "both");
+    expect(checkLaws(fitted.plan)).toEqual([]);
+    const built = knitShortRows(fitted.plan);
+    expect(built.problems).toEqual([]);
+    expect(built.strands.map((b) => b.id).sort()).toEqual(["A", "C", "E", "F"]);
+  });
+
+  // Still open (2026-11-12): two shapes stacked inside a third, fitted the
+  // other two ways, and your fish — the fitted plan breaks the laws itself.
+  it.fails("are kept by every fitted shape inside a shape", () => {
+    for (const id of ["S15", "S16"]) {
       for (const softening of ["grow", "give way", "both"] as Softening[]) {
         const fitted = fitUnits(shape(id), softening);
         if (fitted.unfitted.length > 0) continue;

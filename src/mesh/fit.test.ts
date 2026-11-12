@@ -87,3 +87,14 @@ describe("intarsia-style rows (PLAN.md §6): two balls of one colour in the same
     expect(rows("S15", "nudged").length).toBeGreaterThan(0);
   });
 });
+
+describe("the book's way (PLAN.md §6, step 3): no row with two balls of one colour", () => {
+  // Where things stand, 2026-11-12. Open: the fish with a tail, your fish,
+  // your T.
+  it("exists for every shape but three", () => {
+    const without = SHAPES.filter(
+      (s) => !versionsOf(shape(s.id), physics).some((v) => v.built.problems.length === 0 && v.prediction!.intarsiaRows.length === 0),
+    ).map((s) => s.id);
+    expect(without).toEqual(["S5", "S16", "S17"]);
+  });
+});

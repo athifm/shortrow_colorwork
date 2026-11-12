@@ -251,6 +251,38 @@ export function knitShortRows(grid: Grid, { recipes = "all" }: { recipes?: "all"
     const phaseEnd = (i: number): End =>
       i === kids.length ? { at: home, heading: "right" } : entry(kids[i]) === 1 ? { at: 1, heading: "right" } : { at: entry(kids[i]) - 1, heading: "left" };
 
+    // A row can only be knitted in a stretch whose yarn can get there: every
+    // column on the way from where the stretch starts needs rows of X free in
+    // that stretch too, one to go out over and one to come back. So a row
+    // beyond a nested colour, with nothing of X to cross that colour on, must
+    // be knitted before it — worked out here, before anything is tried, by
+    // narrowing each row's stretches until nothing changes.
+    for (let changed = true; changed; ) {
+      changed = false;
+      const free = (c: Column, p: number) => rows[c - 1].filter((r) => r.lo <= p && p <= r.hi).length;
+      const reachable = (c: Column, p: number) => {
+        const from = phaseStart(p).at;
+        for (const d of range(from, c)) if (d !== from && d !== c && free(d, p) < 2) return false;
+        return true;
+      };
+      for (const col of rows) {
+        for (const r of col) {
+          while (r.lo <= r.hi && !reachable(r.c, r.hi)) {
+            r.hi--;
+            changed = true;
+          }
+          while (r.lo <= r.hi && !reachable(r.c, r.lo)) {
+            r.lo++;
+            changed = true;
+          }
+        }
+        // Still bottom to top within the column.
+        for (let k = 1; k < col.length; k++) col[k].lo = Math.max(col[k].lo, col[k - 1].lo);
+        for (let k = col.length - 2; k >= 0; k--) col[k].hi = Math.min(col[k].hi, col[k + 1].hi);
+        if (col.some((r) => r.lo > r.hi)) return;
+      }
+    }
+
     function* phases(s: State, i: number): Generator<State> {
       if (++attempts > budget) return;
       const last = i === kids.length;
@@ -405,7 +437,10 @@ function* walks(min: number[], max: number[], from: End, to: End, N: number, all
         if (hi.some((h) => h < 0)) continue;
         const middles = extra
           ? [
-              ...[bridged(lo, hi, 2), bridged(lo, hi, 0), smoothed(lo, hi, a)].flatMap((w) => [zigzag(w, a, b, N), bumps(w, a, b, N, true)]),
+              ...[bridged(lo, hi, 2), bridged(lo, hi, 0), smoothed(lo, hi, a), ...bySide(lo, hi)].flatMap((w) => [
+                zigzag(w, a, b, N),
+                bumps(w, a, b, N, true),
+              ]),
               // Nothing in between: just turn — when all that's needed is to
               // get from one hand-over to the next.
               a === b ? [] : null,
@@ -436,11 +471,13 @@ function* walks(min: number[], max: number[], from: End, to: End, N: number, all
  * columns come up level with the layer instead: its turns then move out past
  * them — out from under a shape's tip, say, where the shape turns too.
  */
-function bridged(lo: number[], hi: number[], drop: number): number[] {
+function bridged(lo: number[], hi: number[], drop: number | ((column: number) => number | null)): number[] {
   const w = lo.map((x) => Math.max(0, x));
   const n = w.length;
+  const dropAt = (i: number) => (typeof drop === "number" ? drop : drop(i));
   // As far towards `to` as the column may go, in whole ridges.
   const raise = (i: number, to: number) => {
+    if (dropAt(i) === null) return false;
     let v = Math.min(to, hi[i]);
     if ((to - v) % 2 !== 0) v--;
     if (v > w[i]) {
@@ -457,11 +494,43 @@ function bridged(lo: number[], hi: number[], drop: number): number[] {
       const l = i > 0 ? w[i - 1] : 0;
       const r = i + 1 < n ? w[i + 1] : 0;
       if (i > 0 && i + 1 < n) changed = raise(i, Math.min(l, r)) || changed;
-      changed = raise(i, Math.max(l, r) - drop) || changed;
+      changed = raise(i, Math.max(l, r) - (dropAt(i) ?? 0)) || changed;
     }
   }
   return w;
 }
+
+/**
+ * `bridged`, with each stretch of free columns raised its own way: left as it
+ * is, stepping down, or level. The two sides of a shape often need different
+ * treatment — a lens leaning inside another wants the far side raised level
+ * and the near side left low. Few stretches, so few combinations; the ones
+ * `bridged` alone already gives are left out.
+ */
+function bySide(lo: number[], hi: number[]): number[][] {
+  // Stretches of columns that want nothing now but may take rows.
+  const stretchOf = lo.map(() => -1);
+  let stretches = 0;
+  lo.forEach((want, i) => {
+    if (want > 0 || hi[i] <= 0) return;
+    stretchOf[i] = i > 0 && stretchOf[i - 1] !== -1 ? stretchOf[i - 1] : stretches++;
+  });
+  if (stretches < 2 || stretches > MAX_STRETCHES) return [];
+  const MODES = [null, 2, 0];
+  const out: number[][] = [];
+  const pick = Array.from({ length: stretches }, () => 0);
+  for (;;) {
+    // Mixed choices only: all the same is `bridged` itself, or nothing.
+    if (new Set(pick).size > 1) out.push(bridged(lo, hi, (i) => (stretchOf[i] === -1 ? null : MODES[pick[stretchOf[i]]])));
+    let k = 0;
+    while (k < stretches && ++pick[k] === MODES.length) pick[k++] = 0;
+    if (k === stretches) break;
+  }
+  return out;
+}
+
+/** More stretches than this, and trying every mix would take too long. */
+const MAX_STRETCHES = 2 + 2;
 
 /**
  * The most rows each column may take now, from `a` on — up to the highest

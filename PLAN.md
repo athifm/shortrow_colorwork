@@ -356,6 +356,28 @@ What the checker showed:
   the inner shape can poke out of the outer or cut it in two. A known gap,
   held by a test marked as failing, for step 3.
 
+**Step 3 mostly done, 2026-11-12.** The book's way — no row with two balls of
+one colour — is the only way suggested; the others carry a label ("Intarsia
+in part — not the book's way"), and if there is none the Draw tab says so.
+Fewest balls wins, then nearest look.
+
+- **Fitter** (`units.ts`): a shape inside another stays inside it, never
+  fills a whole column of it, and leaves its layers over and under in one
+  piece — side to side, not corner to corner.
+- **Builder** (`construct.ts`): each side of a shape may be raised its own way
+  (`bySide`); and before anything is tried, each row is limited to the
+  stretches whose yarn can actually reach it — a row beyond a nested colour,
+  with nothing to cross that colour on, is knitted before it.
+- **Result:** the blob inside a blob (S13) knits the book's way all three
+  ways, 3 balls. **Your blob with two colours inside (S15) knits with 4 balls,
+  one per colour**, 8 stitches changed, where it took 7 balls and 6
+  intarsia-style rows. 14 of 17 shapes now have a book's way.
+- **Still open:** S5 fish with a tail (stuck; tails, step 5), S16 your fish
+  (too steep throughout — 40 stitches to change, and still stuck), S17 your T
+  (the crossbar reaching the top splits the background: 2 intarsia-style
+  rows, step 5). Two of S15's three fitted ways, and S16's, still break the
+  laws themselves (test marked failing).
+
 **Steps:**
 
 1. **Commit and push** what exists.
