@@ -353,7 +353,17 @@ AAAAAHHHGGGHHAAA
 AAAAAAAHHHHHAAAA
 AAAAAAAAAAAAAAAA`,
   },
+];
+
+/**
+ * Shapes taken out of the short-row set (PLAN.md §6, round 3, step 6): they
+ * are intarsia's by nature, so the short-row tests and the review don't count
+ * them. Kept, and still on the Draw tab to try.
+ */
+export const INTARSIA_SHAPES: Probe[] = [
   {
+    // A crossbar on a stem: straight sides everywhere, the stem a vertical
+    // column. Your call, round 3: intarsia only.
     id: "S17",
     name: "your T",
     grid: `AAABBBBBBBBAAA

@@ -3,7 +3,7 @@ import { predictionOf, versionsOf } from "./fit";
 import { knitShortRows } from "../methods/shortrow/construct";
 import { turnsOf } from "../methods/shortrow/rules";
 import { parseGrid } from "../methods/shortrow/grid";
-import { SHAPES } from "../methods/shortrow/probes";
+import { SHAPES, INTARSIA_SHAPES } from "../methods/shortrow/probes";
 import { yarnPull, doubleStitchStiffness, stitchAspect, smallestBump } from "../model/physical";
 
 /** The ways to knit a drawing, side by side (PLAN.md §6, step 3; §8, L19). */
@@ -14,7 +14,7 @@ const physics = {
   stitchAspect: stitchAspect.compute({}),
   smallestBump: smallestBump.compute({}),
 };
-const shape = (id: string) => parseGrid(SHAPES.find((s) => s.id === id)!.grid).grid!;
+const shape = (id: string) => parseGrid([...SHAPES, ...INTARSIA_SHAPES].find((s) => s.id === id)!.grid).grid!;
 
 describe("versions", () => {
   it("gives the drawing as it is, then the three softenings", { timeout: 60_000 }, () => {
@@ -43,7 +43,7 @@ describe("versions", () => {
   // them with short rows. The rest are the next work.
   it("has a short-row way for most of the shapes", { timeout: 120_000 }, () => {
     const knits = SHAPES.filter((s) => versionsOf(shape(s.id), physics).some((v) => v.built.problems.length === 0 && v.turns > 0)).map((s) => s.id);
-    expect(knits).toEqual(["S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17"]);
+    expect(knits).toEqual(["S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16"]);
   });
 });
 

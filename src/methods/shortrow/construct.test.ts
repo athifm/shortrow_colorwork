@@ -4,7 +4,7 @@ import { knitIntarsia } from "./intarsia";
 import { roundForShortRows } from "./round";
 import { steepEdges, roundSteep } from "./steep";
 import { parseGrid, type Grid } from "./grid";
-import { PROBES, SHAPES } from "./probes";
+import { PROBES, SHAPES, INTARSIA_SHAPES } from "./probes";
 import { writeRows } from "./writer";
 import { readWritten } from "./written";
 import { simulate } from "./passes";
@@ -171,7 +171,7 @@ describe("the shapes this app is for: the baseline before units (PLAN.md §6)", 
   // Today's builder, as it stands on 2026-10-31: these knit as drawn; the rest
   // must say where they're stuck rather than build something wrong. Units are
   // meant to move shapes from the second list to the first.
-  const KNIT = ["S1", "S2", "S3", "S4", "S6", "S8", "S9", "S10", "S11", "S12", "S14", "S17"];
+  const KNIT = ["S1", "S2", "S3", "S4", "S6", "S8", "S9", "S10", "S11", "S12", "S14"];
   for (const shape of SHAPES) {
     // Slow to give up: the fish with a tail, tried every way.
     it(`${shape.id} ${shape.name}`, { timeout: 60_000 }, () => {
@@ -259,7 +259,7 @@ describe("your T (2026-10-30), softened (PLAN.md §8, L18 and L19)", () => {
   // The crossbar reaches the top, so the background beside it wraps round
   // its tip: below it and above it. Cut in two, each part its own trip.
   it("knits with short rows once fitted to a unit, written out and read back", () => {
-    const { grid } = check(SHAPES.find((s) => s.id === "S17")!.grid);
+    const { grid } = check(INTARSIA_SHAPES.find((s) => s.id === "S17")!.grid);
     for (const softening of ["grow", "give way", "both"] as const) {
       const fitted = fitUnits(grid, softening);
       const built = knitShortRows(fitted.plan);

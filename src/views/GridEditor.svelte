@@ -51,7 +51,7 @@
   import ReviewBar from "./ReviewBar.svelte";
   import { loadReview, saveReview, type Review, type ReviewEntry } from "./review";
   import { simulate, type Pass } from "../methods/shortrow/passes";
-  import { PROBES, SHAPES, EDGES } from "../methods/shortrow/probes";
+  import { PROBES, SHAPES, EDGES, INTARSIA_SHAPES } from "../methods/shortrow/probes";
   import { canKnit, type Answer } from "../methods/shortrow/oracle";
 
   let {
@@ -180,7 +180,7 @@
 
   /** A test shape, a probe or a shape of your own — your redraw of it, if you saved one. */
   function loadShape(id: string) {
-    const probe = [...SHAPES, ...EDGES, ...PROBES].find((p) => p.id === id);
+    const probe = [...SHAPES, ...INTARSIA_SHAPES, ...EDGES, ...PROBES].find((p) => p.id === id);
     const entry = review.entries[id];
     const saved = entry?.grid && (entry.verdict === "redrawn" || entry.mine) ? entry.grid : null;
     const text = saved ?? (probe ? probe.grid.split("\n").map(toLetters).join("\n") : null);
@@ -570,6 +570,9 @@
             {#each SHAPES as p (p.id)}
               <option value={p.id}>{review.entries[p.id]?.verdict ? "✓ " : ""}{p.id} {p.name}</option>
             {/each}
+          </optgroup>
+          <optgroup label="Intarsia only (not short-row tests)">
+            {#each INTARSIA_SHAPES as p (p.id)}<option value={p.id}>{p.id} {p.name}</option>{/each}
           </optgroup>
           {#if mine.length > 0}
             <optgroup label="Your shapes">

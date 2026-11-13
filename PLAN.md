@@ -771,6 +771,16 @@ useful thing to fix. (The fitter's grow card also never offers the lemon: it
 counts changed stitches, so it settles on 5 changes, lopsided, that the
 builder can knit.)
 
+**Round 3, step 6 done (2026-11-13): your T is out of the short-row set.**
+It moved to its own list (`INTARSIA_SHAPES` in `probes.ts`): the short-row
+tests and the review bar no longer count it, and the Draw tab still offers it
+under "Intarsia only". Its two tests of the "ridge on top" card stay, as tests
+of that card. The shapes this app is for are now S1–S16.
+
+**Next: the builder gap** — shapes pointed at both ends that keep every law
+but the builder can't knit: the oval (S7), the blob inside a blob (S13), and
+the teardrop grown into a lemon (step 5).
+
 **Steps:**
 
 1. **Commit and push** what exists.
