@@ -632,6 +632,63 @@ law yet the builder is stuck — the laws are a check, not a guarantee, again.
 (c), moving the fabric's outer edges, stays an option for when a shape needs
 it.
 
+**Round 3 review, 2026-11-13** (`review/review.json`; round 2 kept as
+`review-round2-2026-11-13.json`). Looks right: your peak, S11, S13, S15.
+Notes: S8 — "when editing to find a closer look, always make it look
+symmetrical if the actual image is symmetrical"; why can't adding stitches
+rescue it? S7 — why is the nudged version not symmetrical, why one stitch
+added in row 3, and is a gap in the needle chart a 3-stitch carry? S11 — why
+isn't the knitted chart symmetric about its middle, when the drawing is? S17
+your T — intarsia only; drop it from short-row testing.
+
+Your call on symmetry: **(c) both, side by side** — for a symmetric drawing,
+the closest symmetric version as its own labelled card next to the
+asymmetric ones; you pick.
+
+Round 3 work, in order:
+1. Symmetric versions (the call above).
+2. A symmetric knitting order: for S11, turns at 5, 7, 8, 7, 5 — in, then
+   out, the book's lens — instead of 7, 8, 5, 7, 5.
+3. S7: the stitch added in row 3, and whether that gap is a 3-stitch carry
+   (the limit is 2: a bug if so).
+4. S8: why adding stitches can't rescue the teardrop.
+5. Drop S17 from the short-row set as intarsia-only.
+
+**Round 3, a new note on S8 (2026-11-13):** "symmetric looks the best — I
+think symmetry is a special case of when the drawing and the actual output
+look the same shape. What is a good way to parameterise this shape
+similarity? I don't mind more stitches changed if we can get the similar look."
+So the measure changes: not cells that differ, but **does it look like the
+same shape** — and more stitches changed is fine for that. Your call: **a
+blend** — how far the knitted outline lies from the drawn one (on average,
+and at its worst, in stitches), plus symmetry, plus the number of points.
+
+Round 3 work, re-ordered:
+1. Shape similarity: the blend above, to rank the cards and choose fits.
+2. A proper symmetric fitter (the oval): shapes fitted symmetric from the
+   start — both ends pointed — not one half mirrored. (A first shortcut, one
+   half of each fit mirrored, gives the teardrop a symmetric card that knits,
+   77%; for the oval and the blob inside a blob it only finds intarsia.)
+3. A symmetric knitting order (S11's turns).
+4. S7: the stitch added in row 3, and whether that gap is a 3-stitch carry.
+5. S8: why adding stitches can't rescue it — may be answered by step 1.
+6. Drop S17 as intarsia-only.
+
+**Round 3, step 1 done (2026-11-13): shape similarity** (`mesh/similarity.ts`).
+Each card now says how near its look is to the drawing's shape — "outline
+off by 0.3 stitches on average, 1.0 at worst · symmetric, as drawn · its 2
+points kept" — and the cards are ranked by it, book's way first, then shape,
+then fewest balls, then fewest stitches changed. The blend: average outline
+distance, plus a quarter of the worst, plus one for a symmetric drawing
+knitted lopsided, plus half for each point lost or gained — weights to tune
+by your reviews. Also in: the symmetric card (one half of each fit mirrored).
+
+What it showed: the teardrop's symmetric card now ranks first. Several
+drawings that are symmetric come out lopsided in the *predicted fabric* even
+when knitted exactly as drawn (your nested triangles) — the ridges bend more
+on one side, from the order of the turns: step 3, the symmetric knitting
+order, matters more than it looked.
+
 **Steps:**
 
 1. **Commit and push** what exists.

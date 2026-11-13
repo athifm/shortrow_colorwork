@@ -18,7 +18,8 @@ const shape = (id: string) => parseGrid(SHAPES.find((s) => s.id === id)!.grid).g
 
 describe("versions", () => {
   it("gives the drawing as it is, then the three softenings", { timeout: 60_000 }, () => {
-    expect(versionsOf(shape("S7"), physics).map((v) => v.way)).toEqual(["as drawn", "nudged", "grow", "give way", "both"]);
+    // The oval is symmetric, so it gets a symmetric version too.
+    expect(versionsOf(shape("S7"), physics).map((v) => v.way)).toEqual(["as drawn", "nudged", "grow", "give way", "both", "symmetric"]);
     expect(versionsOf(shape("S3"), physics).map((v) => v.way)).toEqual(["as drawn", "grow", "give way", "both"]);
   });
 

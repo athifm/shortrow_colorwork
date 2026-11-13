@@ -20,6 +20,7 @@ import { blobsOf, fitUnits, type Softening, type Unit } from "../methods/shortro
 import type { Change } from "../methods/shortrow/round";
 import type { Grid } from "../methods/shortrow/grid";
 import { edgesOf, lookOf, type Edge } from "./look";
+import { similarity, mirrorAxes, type Similarity } from "./similarity";
 import { settle, type Shape } from "./settle";
 import type { Physics } from "./convert";
 
@@ -75,7 +76,7 @@ export function predictionOf(stitches: number, built: readonly Pass[], physics: 
   return { written: written.text, passes, info, endsInTurn, fabric, shape, edges: upright ? edgesOf(fabric, lower, upper, colourOfStrand) : [], intarsiaRows };
 }
 
-export type Way = "as drawn" | "nudged" | Softening | "ridge on top";
+export type Way = "as drawn" | "nudged" | Softening | "ridge on top" | "symmetric";
 
 export interface Version {
   way: Way;
@@ -94,9 +95,11 @@ export interface Version {
   balls: number;
   /** The fabric it makes, when it knits. */
   prediction: Prediction | null;
-  /** Its look on the drawing's grid, and where that differs from the drawing. */
+  /** Its look on the drawing's grid, where that differs from the drawing,
+   *  and how nearly it has the drawing's shape (similarity.ts). */
   look: Yarn[][] | null;
   mismatch: Change[];
+  shape: Similarity | null;
   /** The earlier version with the very same plan, if any. */
   sameAs?: Way;
 }
@@ -118,7 +121,7 @@ function version(
 ): Version {
   const changed = differences(plan.cells, drawing.cells);
   if (built.problems.length > 0) {
-    return { way, drawing, plan, changed, units, unfitted, built, turns: 0, balls: 0, prediction: null, look: null, mismatch: [] };
+    return { way, drawing, plan, changed, units, unfitted, built, turns: 0, balls: 0, prediction: null, look: null, mismatch: [], shape: null };
   }
   const prediction = predictionOf(plan.width, built.passes, physics);
   const { passes, endsInTurn, fabric } = prediction;
@@ -136,6 +139,7 @@ function version(
     prediction,
     look,
     mismatch: look ? differences(look, drawing.cells) : [],
+    shape: look ? similarity(drawing, look) : null,
   };
 }
 
@@ -145,13 +149,13 @@ function version(
 const ALLOW_MS = 6000;
 const ALLOW_EACH_MS = 500;
 
-/** The book's way first, then the look nearest the drawing, then the fewest
- *  stitches changed: how one version beats another. */
+/** The book's way first, then the look nearest the drawing's shape, then the
+ *  fewest stitches changed: how one version beats another. */
 function better(a: Version, b: Version): boolean {
   const rank = (v: Version) => [
     v.built.problems.length === 0 ? 0 : 1,
     v.built.problems.length === 0 && (v.prediction?.intarsiaRows.length ?? 0) === 0 ? 0 : 1,
-    v.mismatch.length,
+    v.shape?.penalty ?? Infinity,
     v.changed.length,
   ];
   const [x, y] = [rank(a), rank(b)];
@@ -187,6 +191,9 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
     if (rounded) out.push(version("nudged", drawing, rounded.grid, [], rounded.built, physics));
   }
 
+  // Every plan tried, to mirror into symmetric ones.
+  const seen: Grid[] = out.map((v) => v.plan);
+
   /** The closest version of one softening, of the fits on offer: strict or
    *  loose about one-stitch bumps; the near end — where a shape's rows start,
    *  and its yarn waits — tapered or left as drawn; and the shape's thickness
@@ -202,6 +209,7 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
         [true, true],
       ]) {
         const fit = fitUnits(target, softening, { strict, nearFree, steadyThickness });
+        if (target === drawing) seen.push(fit.plan);
         if (best && differences(best.plan.cells, fit.plan.cells).length === 0) continue;
         const built = knitShortRows(fit.plan, { allowMs: allowMs() });
         const unfitted = blobsOf(target)
@@ -228,5 +236,66 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
     const tries = (["grow", "give way", "both"] as Softening[]).map((softening) => fitted(taller, softening, "ridge on top"));
     out.push(tries.reduce((a, b) => (better(b, a) ? b : a)));
   }
+
+  // A symmetric drawing gets a symmetric version too, beside the others, to
+  // pick from (your call, 2026-11-13): every plan tried, with one half
+  // mirrored onto the other — left and right, top and bottom, or both — and
+  // the closest of those that knits.
+  const symmetric = symmetricVersion(drawing, seen, physics);
+  if (symmetric) {
+    const twin = out.find((o) => differences(o.plan.cells, symmetric.plan.cells).length === 0);
+    if (twin) symmetric.sameAs = twin.sameAs ?? twin.way;
+    out.push(symmetric);
+  }
   return out;
+}
+
+/** Time for the symmetric version, in all, and for any one try of it: a try
+ *  that knits does so in milliseconds; one that doesn't mustn't hold up the rest. */
+const SYMMETRIC_MS = 2500;
+const SYMMETRIC_EACH_MS = 300;
+
+/** The plan with one half mirrored onto the other, about the given axis. */
+function mirrored(plan: Grid, background: Yarn, axis: number, across: "columns" | "ridges", keepLow: boolean): Grid {
+  const at = (r: number, c: number) => (r >= 0 && r < plan.height && c >= 0 && c < plan.width ? plan.cells[r][c] : background);
+  const cells = plan.cells.map((row, r) =>
+    row.map((y, c) => {
+      const k = across === "columns" ? c : r;
+      const kept = keepLow ? 2 * k <= axis : 2 * k >= axis;
+      if (kept) return y;
+      return across === "columns" ? at(r, axis - c) : at(axis - r, c);
+    }),
+  );
+  return { ...plan, cells };
+}
+
+function symmetricVersion(drawing: Grid, plans: Grid[], physics: FabricPhysics): Version | null {
+  const axes = mirrorAxes(drawing);
+  if (axes.columns === null && axes.ridges === null) return null;
+  const background = blobsOf(drawing).background;
+  const deadline = performance.now() + SYMMETRIC_MS;
+
+  // Every plan, mirrored every way the drawing is symmetric; fewest stitches
+  // changed first, so the closest are tried while there's time.
+  const candidates = new Map<string, Grid>();
+  for (const plan of plans) {
+    let ways: Grid[] = [plan];
+    for (const across of ["columns", "ridges"] as const) {
+      const axis = axes[across];
+      if (axis === null) continue;
+      ways = ways.flatMap((g) => [mirrored(g, background, axis, across, true), mirrored(g, background, axis, across, false)]);
+    }
+    for (const g of ways) candidates.set(g.cells.map((row) => row.join("")).join("/"), g);
+  }
+  const ordered = [...candidates.values()].sort((a, b) => differences(a.cells, drawing.cells).length - differences(b.cells, drawing.cells).length);
+
+  let best: Version | null = null;
+  for (const plan of ordered) {
+    if (performance.now() > deadline) break;
+    const built = knitShortRows(plan, { allowMs: SYMMETRIC_EACH_MS });
+    if (built.problems.length > 0) continue;
+    const v = version("symmetric", drawing, plan, [], built, physics);
+    if (!best || better(v, best)) best = v;
+  }
+  return best;
 }

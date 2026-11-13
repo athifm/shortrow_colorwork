@@ -368,13 +368,13 @@
   /** The book's way (PLAN.md §6, law 4): no row with two balls of one
    *  colour. Only such a way is ever suggested. */
   const bookWay = (v: Version) => knits(v) && intarsiaRows(v) === 0;
-  /** Suggested: the book's way with the fewest balls, then the one whose
-   *  look is nearest the drawing, fewest stitches changed on a tie. None, if
-   *  no way keeps to the book. */
+  /** Suggested: the book's way whose look is nearest the drawing's shape,
+   *  then the fewest balls, then the fewest stitches changed. None, if no way
+   *  keeps to the book. */
   const suggested = $derived.by((): Way | null => {
     if (!versions) return null;
     const ok = shown.filter(bookWay);
-    ok.sort((a, b) => a.balls - b.balls || a.mismatch.length - b.mismatch.length || a.changed.length - b.changed.length);
+    ok.sort((a, b) => (a.shape?.penalty ?? Infinity) - (b.shape?.penalty ?? Infinity) || a.balls - b.balls || a.changed.length - b.changed.length);
     return ok[0]?.way ?? null;
   });
   let wayPick = $state<{ key: string; way: Way } | null>(null);
@@ -393,6 +393,7 @@
     "give way": "The background gives way",
     both: "Either way, fewest changes",
     "ridge on top": "A ridge of background on top",
+    symmetric: "Symmetric",
   };
   const WAY_HINT: Record<Way, string> = {
     "as drawn": "Every stitch as you drew it.",
@@ -402,6 +403,7 @@
     both: "Added or taken, whichever changes the fewest stitches.",
     "ridge on top":
       "A shape touches the top edge, which short rows can't knit with one ball: one more ridge of background above it, fitted the closest way.",
+    symmetric: "Your drawing is symmetric: the closest version that is too, left to right and top to bottom as drawn.",
   };
   const KIND_NAME: Record<UnitKind, string> = {
     stripe: "a stripe",
@@ -416,6 +418,16 @@
     const background = v.drawing.cells[0][0];
     const shape = v.drawing.cells.flat().filter((c) => c !== background).length || 1;
     return Math.max(0, Math.round(100 - (100 * v.mismatch.length) / shape));
+  };
+  /** The shape of its look against the drawing, in words (similarity.ts). */
+  const shapeLine = (v: Version) => {
+    const s = v.shape;
+    if (!s) return `${closeness(v)}% as you drew it`;
+    const off = (d: number) => `${d.toFixed(1)} ${d === 1 ? "stitch" : "stitches"}`;
+    const parts = [`outline off by ${off(s.meanOff)} on average, ${off(s.worstOff)} at worst`];
+    if (s.symmetric !== null) parts.push(s.symmetric ? "symmetric, as drawn" : "lopsided — your drawing is symmetric");
+    parts.push(s.points.got === s.points.drawn ? `its ${s.points.drawn} ${s.points.drawn === 1 ? "point" : "points"} kept` : `${s.points.got} points where you drew ${s.points.drawn}`);
+    return parts.join(" · ");
   };
   const unitsOf = (v: Version) => v.units.map((u) => `${KIND_NAME[u.kind]} in ${u.colour}`).join(", ");
 
@@ -820,7 +832,7 @@
                   <span>
                     {v.turns === 0 && intarsiaRows(v) > 0
                       ? "All hand-overs: intarsia, not short-row colorwork."
-                      : `Its look: ${closeness(v)}% as you drew it — ${v.mismatch.length} ${v.mismatch.length === 1 ? "cell differs" : "cells differ"}.`}
+                      : `Its look: ${shapeLine(v)}.`}
                   </span>
                   {#if intarsiaRows(v) > 0}<span class="bad">{intarsiaNote(intarsiaRows(v))}</span>{/if}
                   {#if v.units.length > 0}<span>Found: {unitsOf(v)}.</span>{/if}
