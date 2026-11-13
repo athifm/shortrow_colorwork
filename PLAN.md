@@ -726,6 +726,51 @@ shape's stitches that come out the wrong colour, weighted as two stitches
 out all round. With it the ranking matches your calls: the teardrop's
 symmetric card first; the blob's real fits ahead of a symmetric band.
 
+**Round 3, step 4 done (2026-11-13): the oval's puzzles.** The stitch added in
+row 3 is the old nudging: it moves one stitch at a time, at the first place
+the builder gets stuck, until the builder succeeds — the first fix that works,
+never looking for symmetry. Here it lined up ridge 3's right end with ridge
+4's. Lopsided because of the method, not the knitting.
+The gap in the needle chart is **not a carry** (the only carry in that
+version is 1 stitch, row 13): it is a **second ball of pink** joined 3
+stitches along from where the first one's rows ended ("Row 9: (A) K2, (B) K11,
+SR" starts a new ball). Both balls are drawn pink, so it looks like a carry.
+What it teaches — a limit on the near end's freedom: a near end may be blunt
+or stepped only while each ridge starts within the carry (2 stitches) of where
+the yarn waits; a step of 3 takes a new ball. To add to the laws.
+
+**Round 3, step 5 done (2026-11-13): why adding stitches can't rescue the
+teardrop.** The teardrop breaks two laws: its point at the top climbs 2 ridges
+in one stitch, beside the tip (slope), and its left side is a straight side 2
+ridges tall (tip). The slope is the hard one. A point at the top has to be
+built from both sides, a ridge per stitch at most, so a tip 3 ridges above its
+shoulders needs 3 stitches of slope on each side. Adding stitches can fix
+that: raise the shoulders a stitch, and the steep step moves out a column;
+raise that one, and it moves out again, until it reaches the sides — which
+end up as points:
+
+```
+drawn            grown only, symmetric (6 stitches added)
+. . . . B . . .      . . . . B . . . .
+. . . B B B . .      . . . B B B . . .
+. . . B B B . .      . . B B B B B . .
+. . B B B B B .      . B B B B B B B .
+. B B B B B B B      B B B B B B B B B
+. B B B B B B B      . B B B B B B B .
+. . B B B B B .      . . B B B B B . .
+```
+
+That shape **keeps every law** — a lemon, one stitch wider each side — and on
+paper it is the nearest of all (shape penalty 0.95; the best card today,
+Symmetric, is 1.35). **But the builder can't knit it**, and the try-everything
+checker ran out of time without an answer. It is the same shape of problem as
+the oval and the blob inside a blob: **pointed at both ends**. So adding
+stitches does rescue the teardrop as a drawing; the builder is what fails.
+That makes three shapes stuck on one builder gap, which is now the most
+useful thing to fix. (The fitter's grow card also never offers the lemon: it
+counts changed stitches, so it settles on 5 changes, lopsided, that the
+builder can knit.)
+
 **Steps:**
 
 1. **Commit and push** what exists.
