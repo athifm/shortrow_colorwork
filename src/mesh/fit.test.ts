@@ -112,3 +112,16 @@ describe("a ridge of background on top (PLAN.md §6, edge map)", () => {
     expect(versionsOf(shape("S7"), physics).some((v) => v.way === "ridge on top")).toBe(false);
   });
 });
+
+describe("the knitting order (PLAN.md §6, round 3, step 3)", () => {
+  it("knits the blob at the edge in, then out — turns at 5, 7, 8, 7, 5, the book's lens", { timeout: 60_000 }, () => {
+    const v = versionsOf(shape("S11"), physics).find((x) => x.way === "as drawn")!;
+    const turns = v.prediction!.passes.filter((p) => p.yarn === "B" && p.to > p.from).map((p) => p.to);
+    expect(turns).toEqual([5, 7, 8, 7, 5]);
+  });
+
+  it("keeps your nested triangles symmetric once knitted", { timeout: 60_000 }, () => {
+    const v = versionsOf(shape("S14"), physics).find((x) => x.way === "as drawn")!;
+    expect(v.shape!.symmetric).toBe(true);
+  });
+});

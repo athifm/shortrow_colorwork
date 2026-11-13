@@ -61,6 +61,9 @@ export interface Built extends Knitted {
   stuck?: { column: Column; ridge: number; colour: Yarn };
   /** How far the best attempt got, in passes: more is closer. */
   reached: number;
+  /** Other ways to knit the same picture — other orders of the same turns,
+   *  say — when asked for (`alternatives`). */
+  alternatives?: Knitted[];
 }
 
 /** A connected patch of one colour. */
@@ -107,11 +110,28 @@ class Refused extends Error {}
  *  quicker to give up, for searches that build many drawings (round.ts).
  *  `allowMs`: stop trying after this long — a big drawing can take the search
  *  many seconds to exhaust. */
-export function knitShortRows(grid: Grid, { recipes = "all", allowMs }: { recipes?: "all" | "first"; allowMs?: number } = {}): Built {
+export function knitShortRows(
+  grid: Grid,
+  {
+    recipes = "all",
+    allowMs,
+    alternatives = 0,
+    alternativesMs = 0,
+  }: {
+    recipes?: "all" | "first";
+    allowMs?: number;
+    /** Keep looking, after the first way found, for up to this many more —
+     *  for `alternativesMs` at most. */
+    alternatives?: number;
+    alternativesMs?: number;
+  } = {},
+): Built {
   const started = performance.now();
   let timedOut = false;
+  // Once a way is found, the search for others stops at this time.
+  let stopAt = Infinity;
   const outOfTime = () => {
-    if (allowMs !== undefined && performance.now() - started > allowMs) timedOut = true;
+    if ((allowMs !== undefined && performance.now() - started > allowMs) || performance.now() > stopAt) timedOut = true;
     return timedOut;
   };
   const N = grid.width;
@@ -380,15 +400,22 @@ export function knitShortRows(grid: Grid, { recipes = "all", allowMs }: { recipe
 
   // --- The whole picture -----------------------------------------------------
 
+  const found: Knitted[] = [];
   const start: State = { passes: [], progress: Array.from({ length: N }, () => 0), strands: [], waitingAt: new Map() };
   try {
     for (const s of trip(start, top.id, 1, new Map())) {
       if (s.progress.some((p) => p !== 2 * H)) continue;
       if (writeRows(s.passes, N, "RS").problems.length > 0) continue;
-      return { passes: s.passes, strands: s.strands, ends: s.strands.length * 2, problems: [], reached: s.passes.length };
+      found.push({ passes: s.passes, strands: s.strands, ends: s.strands.length * 2 });
+      if (found.length > alternatives) break;
+      if (found.length === 1) stopAt = performance.now() + alternativesMs;
     }
   } catch (e) {
     if (!(e instanceof Refused)) throw e;
+  }
+  if (found.length > 0) {
+    const [first, ...others] = found;
+    return { ...first, problems: [], reached: first.passes.length, alternatives: others };
   }
   if (timedOut) return fail("Gave up: this drawing is too big for the builder to try every way in the time allowed.");
   return fail(
@@ -477,13 +504,18 @@ function* walks(
         if (extra) {
           for (const w of [lo, bridged(lo, hi, 2), bridged(lo, hi, 0)]) {
             if (outOfTime()) return;
-            const middle = inAndOut(w, a, b, N, outOfTime);
-            if (!middle) continue;
-            const all = [...pre, ...middle, ...post];
-            const key = all.map((p) => `${p.from}>${p.to}`).join(" ");
-            if (offered.has(key) || !fits(cover(all))) continue;
-            offered.add(key);
-            yield all;
+            // As found, and the same trips re-ordered in, then out — the
+            // book's lens — which keeps a symmetric drawing symmetric once
+            // knitted. The turns are checked as for any walk.
+            const found = inAndOut(w, a, b, N, outOfTime);
+            for (const middle of found ? [found, pyramid(found, b)] : []) {
+              if (!middle) continue;
+              const all = [...pre, ...middle, ...post];
+              const key = all.map((p) => `${p.from}>${p.to}`).join(" ");
+              if (offered.has(key) || !fits(cover(all))) continue;
+              offered.add(key);
+              yield all;
+            }
           }
         }
       }
@@ -506,7 +538,13 @@ function* walks(
  * positions that grows with the work — plenty for a shape of a few hundred
  * stitches.
  */
-function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: () => boolean): { from: Column; to: Column }[] | null {
+function inAndOut(
+  want: number[],
+  a: Column,
+  b: Column,
+  N: number,
+  outOfTime: () => boolean,
+): { from: Column; to: Column }[] | null {
   const rem = want.map((w) => Math.max(0, w));
   if (rem.every((r) => r === 0)) return null;
   // Rows since this stitch was turned on: a turn needs CLEAR (a double stitch,
@@ -553,7 +591,7 @@ function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: ()
       // How far it may go: while each stitch has a row left.
       let far = x;
       while (far + back >= 1 && far + back <= N && rem[far + back - 1] > 0) far += back;
-      for (let t = far; t !== x; t -= back) {
+      for (const t of range(far, x + back).filter((t) => t !== x)) {
         // Work the pass x → t: its first stitch is the double stitch's second
         // row, unless the turn was at an edge.
         const saved: number[] = [];
@@ -583,7 +621,7 @@ function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: ()
   if (rem[a - 1] === 0) return null;
   let far = a;
   while (far + 1 <= N && rem[far] > 0) far++;
-  for (let t = far; t >= a; t--) {
+  for (const t of range(far, a)) {
     explored = 0;
     cut = false;
     for (let c = a; c <= t; c++) {
@@ -601,6 +639,35 @@ function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: ()
     }
   }
   return null;
+}
+
+/**
+ * A walk made of trips out from home and straight back — out to t, back to
+ * b, out to t′, back… — re-ordered so the turns go in, then out: the farthest
+ * trip in the middle, the others either side of it, nearest at the ends.
+ * Turns 7, 8, 5, 7, 5 become 5, 7, 8, 7, 5: the same stitches, the order of
+ * the book's lens. Null if the walk isn't made of such trips, or is already
+ * in that order.
+ */
+function pyramid(walk: { from: Column; to: Column }[], b: Column): { from: Column; to: Column }[] | null {
+  if (walk.length % 2 !== 0) return null;
+  const turns: Column[] = [];
+  for (let k = 0; k < walk.length; k += 2) {
+    const out = walk[k];
+    const back = walk[k + 1];
+    if (out.from !== b || back.from !== out.to || back.to !== b) return null;
+    turns.push(out.to);
+  }
+  // Farthest in the middle; then each next, alternately before and after.
+  const order: Column[] = [];
+  [...turns]
+    .sort((x, y) => Math.abs(y - b) - Math.abs(x - b))
+    .forEach((t, k) => (k % 2 === 1 ? order.unshift(t) : order.push(t)));
+  if (order.every((t, k) => t === turns[k])) return null;
+  return order.flatMap((t) => [
+    { from: b, to: t },
+    { from: t, to: b },
+  ]);
 }
 
 /**

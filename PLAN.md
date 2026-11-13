@@ -689,6 +689,23 @@ when knitted exactly as drawn (your nested triangles) — the ridges bend more
 on one side, from the order of the turns: step 3, the symmetric knitting
 order, matters more than it looked.
 
+**Round 3, step 3 done (2026-11-13): the knitting order.** The same stitches
+can be knitted in several orders, and the order changes how the fabric bends.
+The builder now keeps looking briefly after the first way it finds, and each
+card keeps the order whose look comes nearest the drawing's shape — on a tie,
+the order that goes in and then out. A walk made of trips out from home and
+back is also offered re-ordered into a pyramid, farthest trip in the middle:
+S11's pink turns 5, 7, 8, 7, 5 now, the book's lens, not 7, 8, 5, 7, 5.
+
+| Shape | Shape penalty before | After |
+|---|---|---|
+| S14 your nested triangles, as drawn | 2.01, lopsided | 0.79, symmetric |
+| S8 teardrop, symmetric card | 1.51 | 1.03 |
+| S4 leaning stripe | 0.47 | 0.41 |
+
+Still lopsided in every book's way: S7 oval, S13 blob inside a blob — step 2,
+the proper symmetric fitter.
+
 **Steps:**
 
 1. **Commit and push** what exists.

@@ -247,7 +247,56 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
     if (twin) symmetric.sameAs = twin.sameAs ?? twin.way;
     out.push(symmetric);
   }
-  return out;
+
+  // Each way's plan can usually be knitted in more than one order — the same
+  // stitches, the turns taken in another order — and the order changes how
+  // the fabric bends. Keep, for each, the order whose look comes nearest the
+  // drawing's shape: for a symmetric drawing, the most symmetric.
+  return out.map((v) => (v.sameAs || v.built.problems.length > 0 ? v : bestOrder(v, physics)));
+}
+
+/** Other orders asked of the builder, and the time to find them, for one plan. */
+const ORDERS = 1 + 2 + 2 + 1;
+const ORDERS_MS = 400;
+
+/** The version knitted in whichever order its look is nearest the drawing's shape. */
+function bestOrder(v: Version, physics: FabricPhysics): Version {
+  const again = knitShortRows(v.plan, { allowMs: ORDERS_MS * 2, alternatives: ORDERS - 1, alternativesMs: ORDERS_MS });
+  if (again.problems.length > 0) return v;
+  let best = v;
+  for (const k of [again, ...(again.alternatives ?? [])]) {
+    const built: Built = { ...k, problems: [], reached: k.passes.length };
+    const w = version(v.way, v.drawing, v.plan, v.units, built, physics, v.unfitted);
+    // On a tie, the order that goes in and then out, as the book's lens does.
+    const tie = !better(best, w) && !better(w, best);
+    if (better(w, best) || (tie && wanders(w.built.passes) < wanders(best.built.passes))) best = w;
+  }
+  return best;
+}
+
+/**
+ * How often each yarn's turns change direction — in towards the middle, then
+ * back out, then in again — beyond the once that in-then-out needs. Turns
+ * 5, 7, 8, 7, 5 wander once; 7, 8, 5, 7, 5 three times.
+ */
+function wanders(passes: readonly Pass[]): number {
+  const turnsOf = new Map<Yarn, number[]>();
+  passes.forEach((p, k) => {
+    const next = passes[k + 1];
+    if (next && next.yarn === p.yarn && next.from === p.to && p.to > p.from) turnsOf.set(p.yarn, [...(turnsOf.get(p.yarn) ?? []), p.to]);
+  });
+  let total = 0;
+  for (const turns of turnsOf.values()) {
+    let changes = 0;
+    let last = 0;
+    for (let k = 1; k < turns.length; k++) {
+      const way = Math.sign(turns[k] - turns[k - 1]);
+      if (way !== 0 && last !== 0 && way !== last) changes++;
+      if (way !== 0) last = way;
+    }
+    total += Math.max(0, changes - 1);
+  }
+  return total;
 }
 
 /** Time for the symmetric version, in all, and for any one try of it: a try
