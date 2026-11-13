@@ -621,6 +621,17 @@ left (far) side was a straight side two ridges tall. The stem and the
 crossbar each take their own ball of pink — the stem's ends 3 stitches from
 where the bar starts, beyond a carry.
 
+**Step 5 (a), 2026-11-13: background between shapes — rule not loosened.**
+Tested on your blob (S15): the green's point fixed (2 stitches), then the
+three disputed one-stitch bumps in the green between the blue and the purple
+fixed in every combination. The builder knits it only with all three fixed
+(the 5-stitch version); the try-everything checker can't settle the whole
+blob (too big). No evidence the background rule is too strict, so it stays.
+Also seen: with the point and two of the three fixed, the drawing keeps every
+law yet the builder is stuck — the laws are a check, not a guarantee, again.
+(c), moving the fabric's outer edges, stays an option for when a shape needs
+it.
+
 **Steps:**
 
 1. **Commit and push** what exists.
