@@ -174,6 +174,7 @@ function fitOne(
   inside: boolean,
   nearFree: boolean,
   steadyThickness: boolean,
+  mirror: Mirror = { columns: null, ridges: null },
 ): { from: Column; to: Column; bottom: number[]; top: number[] } | null {
   const INF = Number.POSITIVE_INFINITY;
   const STEP = 1 / (N * H + 1);
@@ -205,6 +206,21 @@ function fitOne(
     return added + lost;
   };
 
+  // Symmetric left and right (`mirror.columns`): only the right half is
+  // fitted, each column with its mirror image — both scored together, as one
+  // — up to the middle; the left half is the same, mirrored. And symmetric
+  // top and bottom (`mirror.ridges`): only runs centred on the middle ridge.
+  const A = mirror.columns;
+  const partner = (c: number) => (A === null ? c : A - c);
+  const last = A === null ? N - 1 : Math.min(N - 1, Math.floor(A / 2));
+  const fold = (f: (c: number) => number, c: number, whenOutside: number) => {
+    const p = partner(c);
+    return f(c) + (p === c ? 0 : p >= 0 && p < N ? f(p) : whenOutside);
+  };
+  const foldedAbsent = (c: number) => fold(absent, c, 0);
+  const foldedCost = (c: number, b: number, t: number) => fold((x) => cost(x, b, t), c, INF);
+  const centred = (b: number, t: number) => mirror.ridges === null || b + t === mirror.ridges + 1;
+
   // Inside another shape, at this one's end: that shape's layers over and
   // under it must meet its own stitches in the next column side to side, not
   // corner to corner — or it would be cut in two there.
@@ -231,22 +247,25 @@ function fitOne(
   const dp = Array.from({ length: N }, () => new Float64Array(S).fill(INF));
   const from = Array.from({ length: N }, () => new Int32Array(S).fill(-1));
   const before: number[] = [0];
-  for (let c = 0; c < N; c++) before.push(before[c] + absent(c));
-  const after: number[] = Array.from({ length: N + 1 }, () => 0);
-  for (let c = N - 1; c >= 0; c--) after[c] = after[c + 1] + absent(c);
+  for (let c = 0; c <= last; c++) before.push(before[c] + foldedAbsent(c));
+  const after: number[] = Array.from({ length: last + 2 }, () => 0);
+  for (let c = last; c >= 0; c--) after[c] = after[c + 1] + foldedAbsent(c);
 
   let best = INF;
   let bestEnd: { c: number; s: number } | null = null;
-  for (let c = 0; c < N; c++) {
+  for (let c = 0; c <= last; c++) {
     for (let b = 0; b < H; b++) {
       for (let t = b + 1; t <= H; t++) {
-        const here = cost(c, b, t);
+        if (!centred(b, t)) continue;
+        const here = foldedCost(c, b, t);
         if (here === INF) continue;
         const k = t - b;
         // Start here: at the fabric's edge any thickness, else a tip — unless
         // the near end is free (`nearFree`): this is the end the rows start
-        // from, where the yarn waits, and needs no turn.
-        if ((c === 0 || k === 1 || nearFree) && joins(c, c - 1, b, t)) dp[c][at(b, t, 0)] = before[c] + here;
+        // from, where the yarn waits, and needs no turn. Mirrored, the near
+        // end is the far end's image, and must be a tip too.
+        const edge = c === 0 && (A === null || partner(c) === N - 1);
+        if ((edge || k === 1 || (nearFree && A === null)) && joins(c, c - 1, b, t)) dp[c][at(b, t, 0)] = before[c] + here;
         if (c > 0) {
           for (let db = -1; db <= 1; db++) {
             for (let dt = -1; dt <= 1; dt++) {
@@ -288,9 +307,14 @@ function fitOne(
             }
           }
         }
-        // End here: at the fabric's edge any thickness, else a tip.
-        if ((c === N - 1 || k === 1) && joins(c, c + 1, b, t)) {
+        // End here: at the fabric's edge any thickness, else a tip. Mirrored,
+        // only at the middle, where the left half carries on as its image —
+        // so no layer may have just thickened in a middle column of its own,
+        // or its image would thin straight back: a bump one stitch wide.
+        const endsHere = A === null ? (c === N - 1 || k === 1) && joins(c, c + 1, b, t) : c === last;
+        if (endsHere) {
           for (let f = 0; f < FLAGS; f++) {
+            if (A !== null && strict && partner(c) === c && f !== 0) continue;
             const v = dp[c][at(b, t, f)];
             if (v < INF && v + after[c + 1] < best) {
               best = v + after[c + 1];
@@ -316,7 +340,23 @@ function fitOne(
     s = p;
     c--;
   }
+  // Mirrored: the left half is the right half's image.
+  if (A !== null) {
+    for (let cc = bestEnd.c; cc >= c; cc--) {
+      if (partner(cc) <= bestEnd.c) continue;
+      bottom.push(bottom[cc - c]);
+      top.push(top[cc - c]);
+    }
+    return { from: c + 1, to: partner(c) + 1, bottom, top };
+  }
   return { from: c + 1, to: bestEnd.c + 1, bottom, top };
+}
+
+/** Axes of symmetry, each as the sum of a cell's index and its mirror's
+ *  (mesh/similarity.ts finds them); null where there's none. */
+export interface Mirror {
+  columns: number | null;
+  ridges: number | null;
 }
 
 function kindOf(N: number, H: number, u: { from: Column; to: Column; bottom: number[]; top: number[] }): UnitKind {
@@ -338,7 +378,19 @@ function kindOf(N: number, H: number, u: { from: Column; to: Column; bottom: num
 export function fitUnits(
   grid: Grid,
   softening: Softening,
-  { strict = true, nearFree = false, steadyThickness = true }: { strict?: boolean; nearFree?: boolean; steadyThickness?: boolean } = {},
+  {
+    strict = true,
+    nearFree = false,
+    steadyThickness = true,
+    mirror,
+  }: {
+    strict?: boolean;
+    nearFree?: boolean;
+    steadyThickness?: boolean;
+    /** Fit every shape symmetric about these axes — each shape that is
+     *  symmetric about them as drawn. */
+    mirror?: Mirror;
+  } = {},
 ): Fitted {
   const { width: N, height: H, cells } = grid;
   const { background, blobs, ownerOf } = blobsOf(grid);
@@ -407,7 +459,21 @@ export function fitUnits(
         ceiling[parentUnit.from - 1 + i] = parentUnit.top[i];
       });
     }
-    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling, parentUnit !== undefined, nearFree, steadyThickness);
+    // Each axis the shape is symmetric about as drawn, it is fitted about.
+    const selfMirror = (across: "columns" | "ridges"): number | null => {
+      const axis = mirror?.[across] ?? null;
+      if (axis === null) return null;
+      for (const at of blob.cells) {
+        const [r, c] = [Math.floor(at / N), at % N];
+        const [mr, mc] = across === "columns" ? [r, axis - c] : [axis - r, c];
+        if (mr < 0 || mr >= H || mc < 0 || mc >= N || ownerOf[mr * N + mc] !== blob.id) return null;
+      }
+      return axis;
+    };
+    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling, parentUnit !== undefined, nearFree, steadyThickness, {
+      columns: selfMirror("columns"),
+      ridges: selfMirror("ridges"),
+    });
     if (!fit) {
       // Left as drawn.
       unfitted.push(blob.id);

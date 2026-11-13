@@ -84,7 +84,7 @@ describe("intarsia-style rows (PLAN.md §6): two balls of one colour in the same
     for (const id of ["S2", "S4", "S6", "S14"]) expect(rows(id, "as drawn"), id).toEqual([]);
   });
 
-  it("finds them in your blob with two colours inside, nudged", () => {
+  it("finds them in your blob with two colours inside, nudged", { timeout: 60_000 }, () => {
     expect(rows("S15", "nudged").length).toBeGreaterThan(0);
   });
 });

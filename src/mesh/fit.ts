@@ -243,7 +243,8 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
   // the closest of those that knits.
   const symmetric = symmetricVersion(drawing, seen, physics);
   if (symmetric) {
-    const twin = out.find((o) => differences(o.plan.cells, symmetric.plan.cells).length === 0);
+    // (A "ridge on top" plan is a ridge taller: never the same.)
+    const twin = out.find((o) => o.plan.height === symmetric.plan.height && differences(o.plan.cells, symmetric.plan.cells).length === 0);
     if (twin) symmetric.sameAs = twin.sameAs ?? twin.way;
     out.push(symmetric);
   }
@@ -336,7 +337,21 @@ function symmetricVersion(drawing: Grid, plans: Grid[], physics: FabricPhysics):
     }
     for (const g of ways) candidates.set(g.cells.map((row) => row.join("")).join("/"), g);
   }
-  const ordered = [...candidates.values()].sort((a, b) => differences(a.cells, drawing.cells).length - differences(b.cells, drawing.cells).length);
+  const byChanges = (a: Grid, b: Grid) => differences(a.cells, drawing.cells).length - differences(b.cells, drawing.cells).length;
+  // First, shapes fitted symmetric from the start (units.ts, `mirror`): both
+  // ends pointed alike. Then the mirrored halves.
+  const fittedSymmetric = new Map<string, Grid>();
+  for (const softening of ["give way", "both", "grow"] as Softening[]) {
+    for (const strict of [true, false]) {
+      for (const steadyThickness of [true, false]) {
+        const plan = fitUnits(drawing, softening, { strict, steadyThickness, mirror: axes }).plan;
+        const key = plan.cells.map((row) => row.join("")).join("/");
+        fittedSymmetric.set(key, plan);
+        candidates.delete(key);
+      }
+    }
+  }
+  const ordered = [...[...fittedSymmetric.values()].sort(byChanges), ...[...candidates.values()].sort(byChanges)];
 
   let best: Version | null = null;
   for (const plan of ordered) {
@@ -344,6 +359,8 @@ function symmetricVersion(drawing: Grid, plans: Grid[], physics: FabricPhysics):
     const built = knitShortRows(plan, { allowMs: SYMMETRIC_EACH_MS });
     if (built.problems.length > 0) continue;
     const v = version("symmetric", drawing, plan, [], built, physics);
+    // Short rows, or it's no symmetric way to knit it with them.
+    if (v.turns === 0) continue;
     if (!best || better(v, best)) best = v;
   }
   return best;

@@ -706,6 +706,26 @@ S11's pink turns 5, 7, 8, 7, 5 now, the book's lens, not 7, 8, 5, 7, 5.
 Still lopsided in every book's way: S7 oval, S13 blob inside a blob — step 2,
 the proper symmetric fitter.
 
+**Round 3, step 2 done (2026-11-13): the symmetric fitter** (`units.ts`,
+`mirror`). For a shape symmetric as drawn, only one half is fitted, each
+column scored together with its mirror image, and the other half is its
+image — both ends pointed alike, the same rules on both sides. The Symmetric
+card tries these first, then the mirrored halves, and offers only short-row
+knittings.
+
+What it showed: the symmetric fits are good — the oval and the blob inside a
+blob come out as drawn (they keep every law), the teardrop as a neat
+symmetric teardrop. But the builder still can't knit the oval or the blob
+inside a blob as drawn (the builder gap of step 2 in the earlier order), so
+their Symmetric cards fall back to crude shapes, ranked last.
+
+The shape measure, corrected on the way: a shape's outline includes where it
+meets the fabric's edge (a band running off both sides was passing for a
+blob), and a fourth part was added to the blend — **area**, the share of the
+shape's stitches that come out the wrong colour, weighted as two stitches
+out all round. With it the ranking matches your calls: the teardrop's
+symmetric card first; the blob's real fits ahead of a symmetric band.
+
 **Steps:**
 
 1. **Commit and push** what exists.

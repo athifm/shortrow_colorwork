@@ -71,3 +71,34 @@ describe("fitting", () => {
     }
   });
 });
+
+describe("fitting symmetric (PLAN.md §6, round 3, step 2)", () => {
+  const mirror = (g: ReturnType<typeof shape>) => {
+    // The oval's axes, as similarity.ts finds them: the sum of the outermost
+    // shape cells' indices.
+    const cells = g.cells.flatMap((row, r) => row.flatMap((y, c) => (y !== "A" ? [[r, c]] : [])));
+    return {
+      columns: Math.min(...cells.map(([, c]) => c)) + Math.max(...cells.map(([, c]) => c)),
+      ridges: Math.min(...cells.map(([r]) => r)) + Math.max(...cells.map(([r]) => r)),
+    };
+  };
+
+  it("leaves a symmetric drawing that keeps the laws as it is: the oval", () => {
+    const g = shape("S7");
+    expect(fitUnits(g, "both", { steadyThickness: false, mirror: mirror(g) }).changed).toEqual([]);
+  });
+
+  it("makes every fitted teardrop symmetric left to right", () => {
+    const g = shape("S8");
+    const m = mirror(g);
+    for (const softening of SOFTENINGS) {
+      const plan = fitUnits(g, softening, { steadyThickness: false, mirror: { columns: m.columns, ridges: null } }).plan;
+      plan.cells.forEach((row, r) =>
+        row.forEach((y, c) => {
+          const p = m.columns - c;
+          expect(p >= 0 && p < plan.width ? plan.cells[r][p] : "A", `${softening} r${r} c${c}`).toBe(y);
+        }),
+      );
+    }
+  });
+});

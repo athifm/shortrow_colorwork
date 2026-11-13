@@ -8,7 +8,10 @@
  *  - **symmetry**: where the drawing is mirror-symmetric, whether the look is
  *    too, about the same axis;
  *  - **points**: how many peaks and troughs each colour's outline has — the
- *    teardrop's tip, a lens's two ends — drawn, and kept.
+ *    teardrop's tip, a lens's two ends — drawn, and kept;
+ *  - **area**: the share of the shape's stitches that come out the wrong
+ *    colour — so a crude band can't pass for a blob by lining up with its top
+ *    and bottom.
  *
  * Blended into one penalty to rank by: lower is the same shape more nearly.
  * More stitches changed is fine if the shape comes out nearer.
@@ -28,6 +31,9 @@ export interface Similarity {
   asymmetry: number;
   /** Peaks and troughs of the outlines, drawn and knitted. */
   points: { drawn: number; got: number };
+  /** The share of the drawing's shape cells, and of the look's, that are
+   *  the wrong colour. */
+  wrongArea: number;
   /** All of it in one number: lower is nearer. */
   penalty: number;
 }
@@ -40,6 +46,9 @@ export interface Similarity {
 const WORST_WEIGHT = 1 / 4;
 const LOPSIDED = 1;
 const PER_POINT = 1 / 2;
+/** A shape entirely the wrong colour costs as much as being two stitches out
+ *  all round. */
+const AREA_WEIGHT = 2;
 
 /** Where a drawing is mirror-symmetric, across its columns (left and right)
  *  and across its ridges (top and bottom): each as the sum of a cell's index
@@ -61,8 +70,9 @@ export function mirrorAxes(g: Grid): { columns: number | null; ridges: number | 
   };
 }
 
-/** Cells of one colour on its outline: next to a different colour (the
- *  fabric's own edge doesn't count). */
+/** Cells of one colour on its outline: next to a different colour, or on the
+ *  fabric's own edge — so a band running off both sides has ends to compare,
+ *  and a shape that grows to the edge, where it wasn't drawn to, shows it. */
 function outline(cells: Yarn[][], colour: Yarn): [number, number][] {
   const out: [number, number][] = [];
   cells.forEach((row, r) =>
@@ -73,7 +83,7 @@ function outline(cells: Yarn[][], colour: Yarn): [number, number][] {
         [r - 1, c],
         [r, c + 1],
         [r, c - 1],
-      ].some(([nr, nc]) => nr >= 0 && nr < cells.length && nc >= 0 && nc < row.length && cells[nr][nc] !== colour);
+      ].some(([nr, nc]) => nr < 0 || nr >= cells.length || nc < 0 || nc >= row.length || cells[nr][nc] !== colour);
       if (beside) out.push([r, c]);
     }),
   );
@@ -170,7 +180,23 @@ export function similarity(drawing: Grid, look: Yarn[][]): Similarity {
     got: colours.reduce((t, c) => t + pointsOf(look, c), 0),
   };
 
+  // Area: cells that are shape in the drawing or the look, and wrong.
+  let shapeCells = 0;
+  let wrong = 0;
+  drawing.cells.forEach((row, r) =>
+    row.forEach((y, c) => {
+      if (y === background && look[r][c] === background) return;
+      shapeCells++;
+      if (look[r][c] !== y) wrong++;
+    }),
+  );
+  const wrongArea = shapeCells ? wrong / shapeCells : 0;
+
   const penalty =
-    meanOff + WORST_WEIGHT * worst + (symmetric === false ? LOPSIDED + asymmetry : 0) + PER_POINT * Math.abs(points.drawn - points.got);
-  return { meanOff, worstOff: worst, symmetric, asymmetry, points, penalty };
+    meanOff +
+    WORST_WEIGHT * worst +
+    (symmetric === false ? LOPSIDED + asymmetry : 0) +
+    PER_POINT * Math.abs(points.drawn - points.got) +
+    AREA_WEIGHT * wrongArea;
+  return { meanOff, worstOff: worst, symmetric, asymmetry, points, wrongArea, penalty };
 }
