@@ -609,6 +609,18 @@ Still keeping every law but stuck in the builder: S7 oval, S13 blob inside a
 blob (unknown — too big for the checker), S5 fish with a tail (a law likely
 missing).
 
+**Step 4 done, 2026-11-13: how the T's right side works** (your note: "how
+does the right side have two stacked rows?"). Confirmed from its written rows
+(the "ridge on top" version): the crossbar's right end is its near end. Each
+ridge, grey knits to it and hands over; pink knits out, turns at the far
+(left) end, comes back to the same stitch and hands back to grey — "(A) K3,
+(B) K8, SR / (B) K8, (A) knit to end". The pink yarn waits at that stitch from
+one ridge to the next, so there is no turn there, and nothing stacks: a
+straight side is free at a near end. The stem is shortened to one ridge: its
+left (far) side was a straight side two ridges tall. The stem and the
+crossbar each take their own ball of pink — the stem's ends 3 stitches from
+where the bar starts, beyond a carry.
+
 **Steps:**
 
 1. **Commit and push** what exists.
