@@ -310,7 +310,7 @@ export function knitShortRows(grid: Grid, { recipes = "all", allowMs }: { recipe
       }
 
       let shapes = 0;
-      for (const shape of walks(min, max, phaseStart(i), phaseEnd(i), N, recipes === "all")) {
+      for (const shape of walks(min, max, phaseStart(i), phaseEnd(i), N, recipes === "all", outOfTime)) {
         shapes++;
         const s2 = clone(s);
         try {
@@ -411,7 +411,15 @@ export function knitShortRows(grid: Grid, { recipes = "all", allowMs }: { recipe
  * its last pass runs left from some turn. In between, it goes left and comes
  * back right: a zigzag, or a fill from the edges.
  */
-function* walks(min: number[], max: number[], from: End, to: End, N: number, all: boolean): Generator<{ from: Column; to: Column }[]> {
+function* walks(
+  min: number[],
+  max: number[],
+  from: End,
+  to: End,
+  N: number,
+  all: boolean,
+  outOfTime: () => boolean = () => false,
+): Generator<{ from: Column; to: Column }[]> {
   const fits = (got: number[]) => got.every((g, i) => g >= min[i] && g <= max[i]);
   const cover = (passes: { from: Column; to: Column }[]) => {
     const got = min.map(() => 0);
@@ -464,9 +472,125 @@ function* walks(min: number[], max: number[], from: End, to: End, N: number, all
           offered.add(key);
           yield all;
         }
+        // Last, the in-and-out walk: searched for, so only once the recipes
+        // above have had their turn.
+        if (extra) {
+          for (const w of [lo, bridged(lo, hi, 2), bridged(lo, hi, 0)]) {
+            if (outOfTime()) return;
+            const middle = inAndOut(w, a, b, N, outOfTime);
+            if (!middle) continue;
+            const all = [...pre, ...middle, ...post];
+            const key = all.map((p) => `${p.from}>${p.to}`).join(" ");
+            if (offered.has(key) || !fits(cover(all))) continue;
+            offered.add(key);
+            yield all;
+          }
+        }
       }
     }
   }
+}
+
+/**
+ * The in-and-out walk (PLAN.md §6, "what a found knitting taught"): one yarn,
+ * in from `a` heading left, home to `b` heading right, giving each column
+ * exactly the rows wanted. Not a zigzag that only steps inwards — it may turn
+ * back outwards, and turn again on a stitch it has turned on before, once an
+ * ordinary row has crossed that stitch (rule 1). That is how a shape steps two
+ * ridges at one stitch, or comes to a tip one stitch wide, with no turn on a
+ * turn.
+ *
+ * Found by searching: every turning point in turn, the farthest first, with
+ * positions that lead nowhere remembered. A column with nothing left to knit
+ * is a wall the yarn can't cross. Gives up after ruling out a number of
+ * positions that grows with the work — plenty for a shape of a few hundred
+ * stitches.
+ */
+function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: () => boolean): { from: Column; to: Column }[] | null {
+  const rem = want.map((w) => Math.max(0, w));
+  if (rem.every((r) => r === 0)) return null;
+  // Rows since this stitch was turned on: a turn needs CLEAR (a double stitch,
+  // then an ordinary row, then the row arriving to turn).
+  const CLEAR = 1 + 2;
+  const since = rem.map(() => CLEAR);
+  const left = () => rem.reduce((t, r) => t + r, 0);
+  let todo = left();
+  const budget = N * N * (todo + 1);
+  const passes: { from: Column; to: Column }[] = [];
+  const dead = new Set<string>();
+
+  // Can the work still to do be reached, and home still be reached, from x?
+  // Columns between are crossed: every one needs a row left.
+  const reachable = (x: Column) => {
+    let far = x;
+    for (let c = 1; c <= N; c++) if (rem[c - 1] > 0) far = Math.abs(c - x) > Math.abs(far - x) ? c : far;
+    for (const end of [far, b, ...range(1, N).filter((c) => rem[c - 1] > 0)]) {
+      if (end === x) continue;
+      const step = end > x ? 1 : -1;
+      for (let c = x + step; c !== end; c += step) if (rem[c - 1] === 0) return false;
+    }
+    return true;
+  };
+
+  /** Having just knitted up to x heading `way` (+1 left, −1 right): finish. */
+  const search = (x: Column, way: number): boolean => {
+    if (todo === 0) return x === b && way === -1;
+    if (dead.size > budget || outOfTime()) return false;
+    const key = `${x},${way},${rem.join(".")},${since.join(".")}`;
+    if (dead.has(key)) return false;
+    // The next pass turns here, and works back from this same stitch.
+    const atEdge = x === 1 || x === N;
+    if (rem[x - 1] > 0 && (atEdge || since[x - 1] >= CLEAR) && reachable(x)) {
+      const back = -way;
+      // How far it may go: while each stitch has a row left.
+      let far = x;
+      while (far + back >= 1 && far + back <= N && rem[far + back - 1] > 0) far += back;
+      for (let t = far; t !== x; t -= back) {
+        // Work the pass x → t: its first stitch is the double stitch's second
+        // row, unless the turn was at an edge.
+        const saved: number[] = [];
+        for (let c = x; ; c += back) {
+          saved.push(since[c - 1]);
+          rem[c - 1]--;
+          since[c - 1] = c === x && !atEdge ? 1 : Math.min(CLEAR, since[c - 1] + 1);
+          if (c === t) break;
+        }
+        todo -= saved.length;
+        passes.push({ from: x, to: t });
+        if (search(t, back)) return true;
+        passes.pop();
+        todo += saved.length;
+        for (let c = t; ; c -= back) {
+          rem[c - 1]++;
+          since[c - 1] = saved.pop()!;
+          if (c === x) break;
+        }
+      }
+    }
+    dead.add(key);
+    return false;
+  };
+
+  // The first pass, from a heading left.
+  if (rem[a - 1] === 0) return null;
+  let far = a;
+  while (far + 1 <= N && rem[far] > 0) far++;
+  for (let t = far; t >= a; t--) {
+    for (let c = a; c <= t; c++) {
+      rem[c - 1]--;
+      since[c - 1] = Math.min(CLEAR, since[c - 1] + 1);
+    }
+    todo -= t - a + 1;
+    passes.push({ from: a, to: t });
+    if (search(t, 1)) return passes;
+    passes.pop();
+    todo += t - a + 1;
+    for (let c = a; c <= t; c++) {
+      rem[c - 1]++;
+      since[c - 1] = CLEAR;
+    }
+  }
+  return null;
 }
 
 /**

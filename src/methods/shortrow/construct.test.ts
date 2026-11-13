@@ -173,7 +173,8 @@ describe("the shapes this app is for: the baseline before units (PLAN.md §6)", 
   // meant to move shapes from the second list to the first.
   const KNIT = ["S1", "S2", "S3", "S4", "S6", "S8", "S9", "S10", "S12", "S14", "S17"];
   for (const shape of SHAPES) {
-    it(`${shape.id} ${shape.name}`, () => {
+    // Slow to give up: the fish with a tail, tried every way.
+    it(`${shape.id} ${shape.name}`, { timeout: 60_000 }, () => {
       const { grid, built } = check(shape.grid);
       if (KNIT.includes(shape.id)) expectKnitsAsDrawn(grid, built);
       else expect(built.passes).toEqual([]);

@@ -490,6 +490,89 @@ means knitting a plan that bends into the drawing — the old "draw the look"
 conversion (L3), set aside earlier. With today's guessed physics, so a
 prediction.
 
+**What a found knitting taught, 2026-11-13** — seen on one drawing so far
+(your peak with a narrow base row, 14 × 9). The builder said "stuck"; the
+try-everything checker found it knits exactly as drawn, one ball each, no
+carry (rows in `review/found-peak.txt`; you judged it a reasonable
+approximation). Read backwards, it shows:
+
+1. **The bottom of a shape is the background's job.** Grey's short rows from
+   both edges dip the floor under the narrow base; one row of pink then lands
+   lower in the middle than at the sides, making the base and the wider row
+   above it at once. So top and bottom edges stepping at the same stitch is no
+   problem: two yarns make them. The slope law, judging thickness, was wrong.
+2. **The zigzag goes in and out.** Pink's turns: 12, 3, 11, 5, 9, 4, 10, 5, 9,
+   7, 8, 6, 7. It turns twice at columns 5, 9 and 7, but a pass crosses each
+   in between as an ordinary row, so no turn lands on a turn. A one-way zigzag
+   can't do this (the sketch "why one ridge per stitch" holds only for that).
+   This is how the one-stitch tip is made.
+3. **One ball, one trip** for the whole shape.
+
+So the real limit looks like how often the same stitch is turned on, not how
+steep an edge is. Not yet a law: to be checked on more drawings first.
+
+Seen again on the blob at the edge (S11): the checker found it knits as
+drawn, one ball each, no carry, pink turning 7, 8, 5, 7, 5 — in and out
+(`review/found-blob-edge.txt`).
+
+**The builder learned the in-and-out walk, 2026-11-13** (`inAndOut` in
+`construct.ts`): one yarn's rows searched for, free to turn back outwards and
+to turn again on a stitch once an ordinary row has crossed it. Tried after all
+the other recipes, inside the builder's time limit. Your peak now knits as
+drawn in the builder (2 balls, no carry). Still stuck as drawn, though the
+checker found S11 knits: the builder's own habits get in the way there —
+likely its rule of no turn on a straight vertical edge, which isn't a law of
+knitting. Next to look at. The fish with a tail now has a short-row way, not
+yet the book's.
+
+**Round 2 review, 2026-11-13** (`review/review.json`; round 1 kept in
+`review/review-round1-2026-11-11.json`). Your peak: looks right — "a success,
+a learnable thing". S14 nested triangles: good. Notes:
+
+- S8 teardrop: why no alternative, e.g. one more stitch on each side of a
+  repeated row? (In needle mode no fitted cards show. Your fix changes 2
+  stitches; the fitter's best changes 8, held back by the over-strict slope
+  law.)
+- S11 blob at the edge: the height rises a ridge at a time, so the slope is
+  fine — the length grows 2 stitches a ridge. (Right: proven free; the builder
+  is stuck by its own habits.)
+- S15 your blob: reasonably successful — what changed, and why did it make it
+  knittable? (To be shown.)
+- S17 your T: in the book's way, how does the right side have two stacked
+  rows? (Likely the near end, where the yarn waits and needs no turn — to be
+  confirmed from its rows.)
+
+**Ideas from the review:**
+
+- **Shape and background as equals** (option b): for shapes that need it, the
+  background's short rows shape the floor first — as under your peak's narrow
+  base — and the fitter may adjust the background's edges too.
+- **Adjust the shape before it becomes a grid** (your main point): draw a
+  smooth outline; the app turns it into cells that keep the laws while staying
+  closest to the curve. Many "problems" today are only pixel stairs. Waits
+  until the laws are learned (agreed).
+
+### Order from here (agreed 2026-11-13)
+
+1. Correct the slope law: each edge judged on its own; 2 stitches a ridge is
+   free (S8, S11).
+2. Why the builder is stuck on S11, which the checker proved knittable —
+   likely its own rule of no turn on a straight vertical edge.
+3. Show S15's changes and the reasons for them.
+4. Confirm how the T's right side works, from its written rows.
+5. Option b: the background shaped as an equal, for shapes that need it.
+6. Review rounds, until the laws stop changing.
+7. **Smooth outlines turned into knittable cells.** Rules decide, early: for
+   each column the fitter picks the cells closest to the curve that keep every
+   law — the same exact method as now, measured against the curve instead of
+   drawn cells. Fast, predictable, and it can say why. Then one check with the
+   builder and the prediction. If that fails, a law is missing or wrong: it
+   goes back into the learning, and only then a few rounds of
+   build-measure-adjust as a fallback. This is why step 7 waits: learning the
+   laws now is what lets step 7 be rule-based. Bending (the knitted look
+   matching the curve once relaxed) sits on top, on guessed physics until
+   calibration. Needs a way to draw smooth shapes (H, in §7).
+
 **Steps:**
 
 1. **Commit and push** what exists.
