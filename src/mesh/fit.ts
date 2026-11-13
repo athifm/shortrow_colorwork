@@ -174,10 +174,15 @@ export function withRidgeOnTop(drawing: Grid): Grid | null {
 export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
   const deadline = performance.now() + ALLOW_MS;
   const allowMs = () => Math.max(ALLOW_EACH_MS, deadline - performance.now());
-  const drawn = knitShortRows(drawing, { allowMs: allowMs() });
+  // The drawing as it is gets a third of the time: when it can't be knitted,
+  // the builder may search long before it gives up, and the other ways need
+  // theirs.
+  const drawn = knitShortRows(drawing, { allowMs: ALLOW_MS / (1 + 2) });
   const out: Version[] = [version("as drawn", drawing, drawing, [], drawn, physics)];
   // Nudging tries the builder on many drawings: only while there's time.
-  if (drawn.problems.length > 0 && drawn.stuck && performance.now() < deadline - ALLOW_MS / 2) {
+  // (It finds its own places to move: the drawing as it is may have run out of
+  // time without saying where it was stuck.)
+  if (drawn.problems.length > 0 && performance.now() < deadline - ALLOW_MS / 2) {
     const rounded = roundForShortRows(drawing);
     if (rounded) out.push(version("nudged", drawing, rounded.grid, [], rounded.built, physics));
   }

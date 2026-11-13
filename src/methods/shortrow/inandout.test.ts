@@ -5,6 +5,7 @@ import { simulate } from "./passes";
 import { stackedTurns } from "./rules";
 import { writeRows, colourOfStrand } from "./writer";
 import { readWritten } from "./written";
+import { SHAPES } from "./probes";
 
 /**
  * The in-and-out walk (PLAN.md §6, "what a found knitting taught"): your peak,
@@ -39,5 +40,12 @@ describe("the in-and-out walk", () => {
     // It does turn twice on some stitch: the move itself.
     const turnsAt = read.info.filter((i) => i.turnAt !== null).map((i) => i.turnAt);
     expect(new Set(turnsAt).size).toBeLessThan(turnsAt.length);
+  });
+
+  it("knits the blob at the edge exactly as drawn — turning at 7, 8, 5, 7, 5, as the checker found", () => {
+    const g = parseGrid(SHAPES.find((s) => s.id === "S11")!.grid).grid!;
+    const built = knitShortRows(g);
+    expect(built.problems).toEqual([]);
+    expect(built.strands.map((s) => s.id).sort()).toEqual(["A", "B"]);
   });
 });

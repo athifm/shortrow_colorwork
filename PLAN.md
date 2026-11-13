@@ -594,6 +594,21 @@ shapes keep every law but the builder can't knit them as drawn — S11
 tail (likely a law missing for pieces touching corner to corner). Step 2,
 the builder on S11, comes next.
 
+**Step 2 done, 2026-11-13: why the builder was stuck on S11.** Not its rule
+about vertical edges, as guessed. The in-and-out search had a bug: there is
+one order that works (turns at 7, 8, 5, 7, 5), and the search tried the
+longest first row first, spent its whole budget proving that branch hopeless,
+and gave up; positions abandoned for lack of budget were also wrongly
+remembered as dead. Now each first row gets its own budget, and only
+positions searched to the end are remembered. S11 knits exactly as drawn in
+the builder: 2 balls, no carry, the checker's own order. Also: the drawing as
+it is gets a third of the Draw tab's six seconds, so a hopeless one can't
+crowd out the other ways; nudging runs whenever it fails.
+
+Still keeping every law but stuck in the builder: S7 oval, S13 blob inside a
+blob (unknown — too big for the checker), S5 fish with a tail (a law likely
+missing).
+
 **Steps:**
 
 1. **Commit and push** what exists.

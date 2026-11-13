@@ -515,7 +515,12 @@ function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: ()
   const since = rem.map(() => CLEAR);
   const left = () => rem.reduce((t, r) => t + r, 0);
   let todo = left();
+  // Positions each first pass may explore before giving up on it — each its
+  // own share, so one hopeless first pass can't use up the search. And only
+  // positions searched to the end are remembered as leading nowhere.
   const budget = N * N * (todo + 1);
+  let explored = 0;
+  let cut = false;
   const passes: { from: Column; to: Column }[] = [];
   const dead = new Set<string>();
 
@@ -535,7 +540,10 @@ function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: ()
   /** Having just knitted up to x heading `way` (+1 left, −1 right): finish. */
   const search = (x: Column, way: number): boolean => {
     if (todo === 0) return x === b && way === -1;
-    if (dead.size > budget || outOfTime()) return false;
+    if (++explored > budget || outOfTime()) {
+      cut = true;
+      return false;
+    }
     const key = `${x},${way},${rem.join(".")},${since.join(".")}`;
     if (dead.has(key)) return false;
     // The next pass turns here, and works back from this same stitch.
@@ -567,7 +575,7 @@ function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: ()
         }
       }
     }
-    dead.add(key);
+    if (!cut) dead.add(key);
     return false;
   };
 
@@ -576,6 +584,8 @@ function inAndOut(want: number[], a: Column, b: Column, N: number, outOfTime: ()
   let far = a;
   while (far + 1 <= N && rem[far] > 0) far++;
   for (let t = far; t >= a; t--) {
+    explored = 0;
+    cut = false;
     for (let c = a; c <= t; c++) {
       rem[c - 1]--;
       since[c - 1] = Math.min(CLEAR, since[c - 1] + 1);

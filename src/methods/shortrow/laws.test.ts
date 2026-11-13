@@ -79,18 +79,18 @@ describe("the laws", () => {
   });
 
   // Not a guarantee any more (2026-11-13). With each edge judged on its own,
-  // four shapes keep every law, yet the builder can't knit them as drawn:
-  //  - S11 blob at the edge: proven knittable by the try-everything checker
-  //    (review/found-blob-edge.txt) — the builder is at fault;
+  // three shapes keep every law, yet the builder can't knit them as drawn:
   //  - S7 oval, S13 blob inside a blob: too big for the checker; unknown;
   //  - S5 fish with a tail: its tail is pieces touching corner to corner —
   //    likely a law missing.
-  it("when kept, the drawing knits as it stands — but for four known shapes", { timeout: 120_000 }, () => {
+  // (S11, the blob at the edge, was a fourth until the in-and-out search was
+  // fixed: the checker had proven it knits, and now the builder does too.)
+  it("when kept, the drawing knits as it stands — but for three known shapes", { timeout: 120_000 }, () => {
     const failing: string[] = [];
     for (const s of SHAPES) {
       const grid = shape(s.id);
       if (checkLaws(grid).length === 0 && knitShortRows(grid, { allowMs: 10_000 }).problems.length > 0) failing.push(s.id);
     }
-    expect(failing).toEqual(["S5", "S7", "S11", "S13"]);
+    expect(failing).toEqual(["S5", "S7", "S13"]);
   });
 });
