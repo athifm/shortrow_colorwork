@@ -32,7 +32,7 @@ describe("fitting", () => {
     }
   });
 
-  it("keeps the rule: edges and thickness move a ridge at most, and tips are one ridge", () => {
+  it("keeps the rule, by default: edges and thickness move a ridge at most, and tips are one ridge", () => {
     for (const s of SHAPES) {
       const grid = shape(s.id);
       for (const softening of SOFTENINGS) {

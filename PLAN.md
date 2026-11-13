@@ -573,6 +573,27 @@ a learnable thing". S14 nested triangles: good. Notes:
    matching the curve once relaxed) sits on top, on guessed physics until
    calibration. Needs a way to draw smooth shapes (H, in §7).
 
+**Step 1 done, 2026-11-13: the slope law judges each edge on its own.** The
+layer under a shape and the layer over it each move a ridge at most; the
+shape's thickness may change by two where both edges step at one stitch
+(your S8 and S11 notes; your peak proved it). A one-stitch tip of the shape
+itself is no longer a breach. The fitter offers both: thickness free, or held
+to a ridge a stitch (the old way, which the builder knits more often); the
+Draw tab keeps the closer that knits.
+
+| Shape | Before | After |
+|---|---|---|
+| S8 teardrop | 71% close, 8 changed | 81%, 4 changed |
+| S15 your blob | 76%, 8 changed | 78%, 5 changed |
+| your peak, S11 | laws said broken | laws kept — matching the proofs |
+| all others | — | unchanged |
+
+What it showed: the laws are now a necessary check, not a guarantee. Four
+shapes keep every law but the builder can't knit them as drawn — S11
+(proven knittable: the builder's fault), S7 and S13 (unknown), S5 fish with a
+tail (likely a law missing for pieces touching corner to corner). Step 2,
+the builder on S11, comes next.
+
 **Steps:**
 
 1. **Commit and push** what exists.

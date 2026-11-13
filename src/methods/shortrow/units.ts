@@ -173,6 +173,7 @@ function fitOne(
   ceiling: number[],
   inside: boolean,
   nearFree: boolean,
+  steadyThickness: boolean,
 ): { from: Column; to: Column; bottom: number[]; top: number[] } | null {
   const INF = Number.POSITIVE_INFINITY;
   const STEP = 1 / (N * H + 1);
@@ -224,8 +225,7 @@ function fitOne(
   // finds its way round one, and the shape is then nearer the drawing.)
   const UNDER = 1;
   const OVER = UNDER * 2;
-  const OWN = OVER * 2;
-  const FLAGS = OWN * 2;
+  const FLAGS = OVER * 2;
   const S = (H + 1) * (H + 1) * FLAGS;
   const at = (b: number, t: number, f: number) => (b * (H + 1) + t) * FLAGS + f;
   const dp = Array.from({ length: N }, () => new Float64Array(S).fill(INF));
@@ -253,11 +253,19 @@ function fitOne(
               const pb = b - db;
               const pt = t - dt;
               if (pb < 0 || pt > H || pt - pb < 1) continue;
-              const dk = k - (pt - pb);
               // The layers under and over, within the parent.
               const du = b - floor[c] - (pb - floor[c - 1]);
               const dv = ceiling[c] - t - (ceiling[c - 1] - pt);
-              if (Math.abs(dk) > 1 || Math.abs(du) > 1 || Math.abs(dv) > 1) continue;
+              // Each edge on its own — the layer under it and the layer over
+              // it — moves a ridge at most. Its thickness may change by two,
+              // where both edges step at one stitch: two yarns make them, and
+              // the in-and-out walk turns twice on a stitch with a row between
+              // (PLAN.md §6, "what a found knitting taught").
+              if (Math.abs(du) > 1 || Math.abs(dv) > 1) continue;
+              // Unless asked to keep the thickness too (`steadyThickness`): a
+              // shape the builder can knit more often, at the cost of more
+              // stitches changed.
+              if (steadyThickness && Math.abs(k - (pt - pb)) > 1) continue;
               // Inside another shape, its layer under this one, and over it,
               // stay in one piece from column to column: a layer one ridge
               // thick that steps a ridge would touch only corner to corner.
@@ -266,9 +274,9 @@ function fitOne(
                 const overApart = pt < ceiling[c - 1] && t < ceiling[c] && Math.max(pt, t) >= Math.min(ceiling[c - 1], ceiling[c]);
                 if (underApart || overApart) continue;
               }
-              const f = (du > 0 ? UNDER : 0) | (dv > 0 ? OVER : 0) | (dk > 0 ? OWN : 0);
+              const f = (du > 0 ? UNDER : 0) | (dv > 0 ? OVER : 0);
               for (let pf = 0; pf < FLAGS; pf++) {
-                if (strict && ((pf & UNDER && du < 0) || (pf & OVER && dv < 0) || (pf & OWN && dk < 0))) continue;
+                if (strict && ((pf & UNDER && du < 0) || (pf & OVER && dv < 0))) continue;
                 const prev = dp[c - 1][at(pb, pt, pf)];
                 if (prev === INF) continue;
                 const w = prev + here + STEP * (Math.abs(db) + Math.abs(dt));
@@ -330,7 +338,7 @@ function kindOf(N: number, H: number, u: { from: Column; to: Column; bottom: num
 export function fitUnits(
   grid: Grid,
   softening: Softening,
-  { strict = true, nearFree = false }: { strict?: boolean; nearFree?: boolean } = {},
+  { strict = true, nearFree = false, steadyThickness = true }: { strict?: boolean; nearFree?: boolean; steadyThickness?: boolean } = {},
 ): Fitted {
   const { width: N, height: H, cells } = grid;
   const { background, blobs, ownerOf } = blobsOf(grid);
@@ -399,7 +407,7 @@ export function fitUnits(
         ceiling[parentUnit.from - 1 + i] = parentUnit.top[i];
       });
     }
-    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling, parentUnit !== undefined, nearFree);
+    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling, parentUnit !== undefined, nearFree, steadyThickness);
     if (!fit) {
       // Left as drawn.
       unfitted.push(blob.id);

@@ -10,12 +10,14 @@
  *  - **one piece**: a shape has one stretch in each column. Two, with another
  *    colour between (a forked tail, a "C"), can't come from one ball working
  *    back and forth.
- *  - **slope**: from one column to the next, the shape's thickness, the layer
- *    under it and the layer over it each change by a ridge at most — every
- *    turn a stitch further on. Under and over are measured within whatever
- *    the shape sits in.
- *  - **bump**: none of those three is thicker in one column than in both its
- *    neighbours. A bump one stitch wide is two turns on one stitch (rule 1).
+ *  - **slope**: from one column to the next, each edge — the layer under the
+ *    shape and the layer over it — moves a ridge at most: every turn a stitch
+ *    further on. Each edge on its own; the shape's thickness may change by
+ *    two, where both step at one stitch. Under and over are measured within
+ *    whatever the shape sits in.
+ *  - **bump**: neither of those layers is thicker in one column than in both
+ *    its neighbours — a bump one stitch wide in the background, two turns on
+ *    one stitch. A one-stitch tip of the shape itself is fine.
  *  - **tip**: at its far end — the left, where its yarn turns — short of the
  *    fabric's edge, a shape ends one ridge thick. A straight side there is
  *    intarsia's. Its near end may be blunt.
@@ -120,8 +122,11 @@ export function checkLaws(grid: Grid): Breach[] {
 
     for (let c = from + 1; c <= to; c++) {
       if (span[c] === null || span[c - 1] === null) continue;
-      // Slope: thickness, under and over, each a ridge at most.
-      const steps = [thick(c) - thick(c - 1), under(c) - under(c - 1), over(c) - over(c - 1)];
+      // Slope: each edge on its own — the layer under it and the layer over
+      // it — a ridge at most. Not its thickness: where both edges step at one
+      // stitch, two yarns make them (PLAN.md §6, "what a found knitting
+      // taught"; your S8 and S11).
+      const steps = [under(c) - under(c - 1), over(c) - over(c - 1)];
       if (steps.some((d) => Math.abs(d) > 1)) {
         const a = at(c - 1);
         const b = at(c);
@@ -135,7 +140,7 @@ export function checkLaws(grid: Grid): Breach[] {
           law: "slope",
           colour,
           cells: cells.length > 0 ? cells : cellsOf(c, b.bottom, b.top),
-          why: `Too steep between columns ${c} and ${c + 1}: yarn ${colour}, or the layer under or over it, changes by ${most} ridges in one stitch. Short rows manage one — each turn a stitch further on.`,
+          why: `Too steep between columns ${c} and ${c + 1}: an edge of yarn ${colour} moves ${most} ridges in one stitch. Short rows manage one — each turn a stitch further on.`,
         });
       }
     }
@@ -146,11 +151,8 @@ export function checkLaws(grid: Grid): Breach[] {
       const peak = (layer: (c: number) => number) => layer(c) > layer(c - 1) && layer(c) > layer(c + 1);
       const { bottom, top } = at(c);
       const cells: { ridge: number; column: number }[] = [];
-      if (peak(thick)) {
-        if (top > at(c - 1).top && top > at(c + 1).top) cells.push({ ridge: top - 1, column: c + 1 });
-        if (bottom < at(c - 1).bottom && bottom < at(c + 1).bottom) cells.push({ ridge: bottom, column: c + 1 });
-        if (cells.length === 0) cells.push({ ridge: top - 1, column: c + 1 }, { ridge: bottom, column: c + 1 });
-      }
+      // A tip one stitch wide in the shape itself is fine: the in-and-out
+      // walk turns twice there with a row between (your peak).
       // The layer under it, or over it, poking one stitch into the shape.
       if (peak(under) && bottom > 0) cells.push({ ridge: bottom - 1, column: c + 1 });
       if (peak(over) && top < H) cells.push({ ridge: top, column: c + 1 });

@@ -183,13 +183,20 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
   }
 
   /** The closest version of one softening, of the fits on offer: strict or
-   *  loose about one-stitch bumps, and with the near end — where a shape's
-   *  rows start, and its yarn waits — tapered or left as drawn. */
+   *  loose about one-stitch bumps; the near end — where a shape's rows start,
+   *  and its yarn waits — tapered or left as drawn; and the shape's thickness
+   *  free to change by two where both edges step at one stitch, or held to
+   *  one, which the builder can knit more often. */
   const fitted = (target: Grid, softening: Softening, way: Way): Version => {
     let best: Version | null = null;
     for (const strict of [true, false]) {
-      for (const nearFree of [false, true]) {
-        const fit = fitUnits(target, softening, { strict, nearFree });
+      for (const [nearFree, steadyThickness] of [
+        [false, false],
+        [true, false],
+        [false, true],
+        [true, true],
+      ]) {
+        const fit = fitUnits(target, softening, { strict, nearFree, steadyThickness });
         if (best && differences(best.plan.cells, fit.plan.cells).length === 0) continue;
         const built = knitShortRows(fit.plan, { allowMs: allowMs() });
         const unfitted = blobsOf(target)

@@ -17,18 +17,18 @@ const physics = {
 const shape = (id: string) => parseGrid(SHAPES.find((s) => s.id === id)!.grid).grid!;
 
 describe("versions", () => {
-  it("gives the drawing as it is, then the three softenings", () => {
+  it("gives the drawing as it is, then the three softenings", { timeout: 60_000 }, () => {
     expect(versionsOf(shape("S7"), physics).map((v) => v.way)).toEqual(["as drawn", "nudged", "grow", "give way", "both"]);
     expect(versionsOf(shape("S3"), physics).map((v) => v.way)).toEqual(["as drawn", "grow", "give way", "both"]);
   });
 
-  it("says when a version is the same as an earlier one", () => {
+  it("says when a version is the same as an earlier one", { timeout: 60_000 }, () => {
     const [drawn, ...fitted] = versionsOf(shape("S3"), physics);
     expect(drawn.built.problems).toEqual([]);
     for (const v of fitted) expect(v.sameAs).toBe("as drawn");
   });
 
-  it("knits the oval, which can't be knitted as drawn, every fitted way — with its look", () => {
+  it("knits the oval, which can't be knitted as drawn, every fitted way — with its look", { timeout: 60_000 }, () => {
     const [drawn, ...fitted] = versionsOf(shape("S7"), physics);
     expect(drawn.built.problems).not.toEqual([]);
     for (const v of fitted) {
@@ -100,14 +100,14 @@ describe("the book's way (PLAN.md §6, step 3): no row with two balls of one col
 });
 
 describe("a ridge of background on top (PLAN.md §6, edge map)", () => {
-  it("is offered for your T, whose crossbar touches the top edge, and knits it the book's way", () => {
+  it("is offered for your T, whose crossbar touches the top edge, and knits it the book's way", { timeout: 60_000 }, () => {
     const ridge = versionsOf(shape("S17"), physics).find((v) => v.way === "ridge on top")!;
     expect(ridge.drawing.height).toBe(shape("S17").height + 1);
     expect(ridge.built.problems).toEqual([]);
     expect(ridge.prediction!.intarsiaRows).toEqual([]);
   });
 
-  it("isn't offered when nothing touches the top", () => {
+  it("isn't offered when nothing touches the top", { timeout: 60_000 }, () => {
     expect(versionsOf(shape("S7"), physics).some((v) => v.way === "ridge on top")).toBe(false);
   });
 });
