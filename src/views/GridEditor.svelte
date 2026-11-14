@@ -405,7 +405,7 @@
     both: "Added or taken, whichever changes the fewest stitches.",
     "ridge on top":
       "A shape touches the top edge, which short rows can't knit with one ball: one more ridge of background above it, fitted the closest way.",
-    symmetric: "Your drawing is symmetric: the closest version that is too — both ways if it can be, or one way where the laws allow only that.",
+    symmetric: "Your drawing is symmetric: the version whose fabric comes out most symmetric once it relaxes, then the closest.",
   };
   const KIND_NAME: Record<UnitKind, string> = {
     stripe: "a stripe",

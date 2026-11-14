@@ -258,18 +258,23 @@ export function versionsOf(drawing: Grid, physics: FabricPhysics): Version[] {
   // mirrored onto the other — left and right, top and bottom, or both — and
   // the closest of those that knits.
   const symmetric = symmetricVersion(drawing, seen, physics);
-  if (symmetric) {
-    // (A "ridge on top" plan is a ridge taller: never the same.)
-    const twin = out.find((o) => o.plan.height === symmetric.plan.height && differences(o.plan.cells, symmetric.plan.cells).length === 0);
-    if (twin) symmetric.sameAs = twin.sameAs ?? twin.way;
-    out.push(symmetric);
-  }
 
   // Each way's plan can usually be knitted in more than one order — the same
   // stitches, the turns taken in another order — and the order changes how
   // the fabric bends. Keep, for each, the order whose look comes nearest the
-  // drawing's shape: for a symmetric drawing, the most symmetric.
-  return out.map((v) => (v.sameAs || v.built.problems.length > 0 ? v : bestOrder(v, physics)));
+  // drawing's shape. (The Symmetric card has chosen its order already, by
+  // its own measure.)
+  const final = out.map((v) => (v.sameAs || v.built.problems.length > 0 ? v : bestOrder(v, physics)));
+  if (symmetric) {
+    // The same as another card only if it knits the same, in the same order:
+    // the same plan in another order is another fabric. (A "ridge on top"
+    // plan is a ridge taller: never the same.)
+    const samePasses = (a: Version, b: Version) => JSON.stringify(a.built.passes) === JSON.stringify(b.built.passes);
+    const twin = final.find((o) => o.plan.height === symmetric.plan.height && differences(o.plan.cells, symmetric.plan.cells).length === 0 && samePasses(o, symmetric));
+    if (twin) symmetric.sameAs = twin.sameAs ?? twin.way;
+    final.push(symmetric);
+  }
+  return final;
 }
 
 /** Other orders asked of the builder, and the time to find them, for one plan. */
@@ -277,7 +282,7 @@ const ORDERS = 1 + 2 + 2 + 1;
 const ORDERS_MS = 400;
 
 /** The version knitted in whichever order its look is nearest the drawing's shape. */
-function bestOrder(v: Version, physics: FabricPhysics): Version {
+function bestOrder(v: Version, physics: FabricPhysics, isBetter: (a: Version, b: Version) => boolean = better): Version {
   const again = knitShortRows(v.plan, { allowMs: ORDERS_MS * 2, alternatives: ORDERS - 1, alternativesMs: ORDERS_MS });
   if (again.problems.length > 0) return v;
   let best = v;
@@ -285,8 +290,8 @@ function bestOrder(v: Version, physics: FabricPhysics): Version {
     const built: Built = { ...k, problems: [], reached: k.passes.length };
     const w = version(v.way, v.drawing, v.plan, v.units, built, physics, v.unfitted);
     // On a tie, the order that goes in and then out, as the book's lens does.
-    const tie = !better(best, w) && !better(w, best);
-    if (better(w, best) || (tie && wanders(w.built.passes) < wanders(best.built.passes))) best = w;
+    const tie = !isBetter(best, w) && !isBetter(w, best);
+    if (isBetter(w, best) || (tie && wanders(w.built.passes) < wanders(best.built.passes))) best = w;
   }
   return best;
 }
@@ -320,6 +325,8 @@ function wanders(passes: readonly Pass[]): number {
  *  that knits does so in milliseconds; one that doesn't mustn't hold up the rest. */
 const SYMMETRIC_MS = 2500;
 const SYMMETRIC_EACH_MS = 300;
+/** How many of the most symmetric are also tried in their other orders. */
+const SYMMETRIC_ORDERED = 2;
 
 /** The plan with one half mirrored onto the other, about the given axis. */
 function mirrored(plan: Grid, background: Yarn, axis: number, across: "columns" | "ridges", keepLow: boolean): Grid {
@@ -374,9 +381,19 @@ function symmetricVersion(drawing: Grid, plans: Grid[], physics: FabricPhysics):
       }
     }
   }
-  const ordered = [...[...fittedSymmetric.values()].sort(byChanges), ...[...candidates.values()].sort(byChanges)];
+  // And every plan as it is (round 4, step 2): a plan that isn't symmetric
+  // on paper can come out symmetric in the fabric — your blob inside a blob,
+  // grown.
+  const asIs = new Map<string, Grid>();
+  for (const plan of plans) {
+    const key = plan.cells.map((row) => row.join("")).join("/");
+    if (!fittedSymmetric.has(key) && !candidates.has(key)) asIs.set(key, plan);
+  }
+  const ordered = [...[...fittedSymmetric.values()].sort(byChanges), ...[...asIs.values()].sort(byChanges), ...[...candidates.values()].sort(byChanges)];
 
-  let best: Version | null = null;
+  // Judged on the fabric each comes out as: the most symmetric relaxed
+  // fabric, then the nearest (step 2: chosen by the look, not the plan).
+  const knitted: Version[] = [];
   for (const plan of ordered) {
     if (performance.now() > deadline) break;
     const built = knitShortRows(plan, { allowMs: SYMMETRIC_EACH_MS });
@@ -384,7 +401,42 @@ function symmetricVersion(drawing: Grid, plans: Grid[], physics: FabricPhysics):
     const v = version("symmetric", drawing, plan, [], built, physics);
     // Short rows, or it's no symmetric way to knit it with them.
     if (v.turns === 0) continue;
-    if (!best || better(v, best)) best = v;
+    knitted.push(v);
   }
-  return best;
+  if (knitted.length === 0) return null;
+  // Only shapes whose form is near enough the drawing — outline, points and
+  // area, symmetry left out: within a stitch all round of the nearest. Or a
+  // crude band, perfectly symmetric, would win.
+  const bookWay = (v: Version) => (v.prediction?.intarsiaRows.length ?? 0) === 0;
+  const pool = knitted.some(bookWay) ? knitted.filter(bookWay) : knitted;
+  const formOf = (v: Version) => v.shape?.formOff ?? Infinity;
+  const nearest = Math.min(...pool.map(formOf));
+  const near = pool.filter((v) => formOf(v) <= nearest + NEAR_ENOUGH);
+  // The likeliest few knitted in their other orders too — the order changes
+  // how the fabric bends — and the most symmetric of all kept.
+  const ranked = near.sort((a, b) => (moreSymmetric(a, b) ? -1 : moreSymmetric(b, a) ? 1 : 0));
+  return ranked
+    .slice(0, SYMMETRIC_ORDERED)
+    .map((v) => bestOrder(v, physics, (x, y) => formOf(x) <= nearest + NEAR_ENOUGH && moreSymmetric(x, y)))
+    .reduce((a, b) => (moreSymmetric(b, a) ? b : a));
+}
+
+/** How much further from the drawing than the nearest a shape may be and
+ *  still be the Symmetric card: a stitch out all round. */
+const NEAR_ENOUGH = 1;
+
+/** For the Symmetric card: the book's way first, then the fabric that keeps
+ *  more of the drawing's symmetry, and matches its mirror more closely, then
+ *  the nearer shape. */
+function moreSymmetric(a: Version, b: Version): boolean {
+  const rank = (v: Version) => [
+    v.built.problems.length === 0 ? 0 : 1,
+    v.built.problems.length === 0 && (v.prediction?.intarsiaRows.length ?? 0) === 0 ? 0 : 1,
+    v.shape?.lopsided ?? 1,
+    v.shape?.asymmetry ?? 1,
+    v.shape?.penalty ?? Infinity,
+  ];
+  const [x, y] = [rank(a), rank(b)];
+  for (let k = 0; k < x.length; k++) if (x[k] !== y[k]) return x[k] < y[k];
+  return false;
 }

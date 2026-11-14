@@ -121,6 +121,19 @@ describe("the knitting order (PLAN.md §6, round 3, step 3)", () => {
     expect(turns).toEqual([5, 7, 8, 7, 5]);
   });
 
+  it("the Symmetric card is the most symmetric fabric among real fits, never a crude band", { timeout: 120_000 }, () => {
+    // Round 4, step 2: chosen by the relaxed fabric, among shapes whose form
+    // is within a stitch of the nearest.
+    for (const id of ["S8", "S13"]) {
+      const vs = versionsOf(shape(id), physics).filter((v) => v.built.problems.length === 0 && v.prediction!.intarsiaRows.length === 0);
+      const sym = vs.find((v) => v.way === "symmetric")!;
+      expect(sym.changed.length, id).toBeLessThanOrEqual(10);
+      for (const v of vs) expect(sym.shape!.lopsided, `${id} ${v.way}`).toBeLessThanOrEqual(v.shape!.lopsided);
+    }
+    // The teardrop's comes out symmetric once relaxed.
+    expect(versionsOf(shape("S8"), physics).find((v) => v.way === "symmetric")!.shape!.symmetric).toBe(true);
+  });
+
   it("keeps your nested triangles nearly symmetric once knitted", { timeout: 60_000 }, () => {
     // Judged on the relaxed fabric (round 4), it isn't exact: the layers
     // settle a little differently on each side. Under a tenth of the shape.

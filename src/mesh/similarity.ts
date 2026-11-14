@@ -37,12 +37,18 @@ export interface Similarity {
   asymmetry: number;
   /** For a drawing symmetric both ways: which the look keeps. */
   kept: { columns: boolean; ridges: boolean } | null;
+  /** How much of the drawing's symmetry the look loses, 0 to 1: left to right
+   *  counts two-thirds where both are drawn. 0 for a drawing with none. */
+  lopsided: number;
   /** Peaks and troughs of the outlines, drawn and knitted. */
   points: { drawn: number; got: number };
   /** The share of the shape, drawn or knitted, that is the wrong colour. */
   wrongArea: number;
   /** All of it in one number: lower is nearer. */
   penalty: number;
+  /** The same without symmetry: how near the form is, outline, points and
+   *  area — to tell a real fit from a crude symmetric band. */
+  formOff: number;
 }
 
 /** How much each part counts in the penalty. The outline's average is the
@@ -291,11 +297,7 @@ export function similarity(drawing: Grid, look: Yarn[][] | Run[][]): Similarity 
   });
   const wrongArea = union ? Math.max(0, (union - right) / union) : 0;
 
-  const penalty =
-    meanOff +
-    WORST_WEIGHT * worst +
-    (symmetric === false ? LOPSIDED * broken + asymmetry : 0) +
-    PER_POINT * Math.abs(points.drawn - points.got) +
-    AREA_WEIGHT * wrongArea;
-  return { meanOff, worstOff: worst, symmetric, asymmetry, kept, points, wrongArea, penalty };
+  const formOff = meanOff + WORST_WEIGHT * worst + PER_POINT * Math.abs(points.drawn - points.got) + AREA_WEIGHT * wrongArea;
+  const penalty = formOff + (symmetric === false ? LOPSIDED * broken + asymmetry : 0);
+  return { meanOff, worstOff: worst, symmetric, asymmetry, kept, lopsided: broken, points, wrongArea, penalty, formOff };
 }

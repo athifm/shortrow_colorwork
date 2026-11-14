@@ -915,6 +915,23 @@ card now gets an order whose look is symmetric left to right, and it ranks
 first (0.78; Symmetric 0.90). Your nested triangles come out nearly, not
 exactly, symmetric once relaxed (6% of the shape).
 
+**Done (2026-11-14): step 2, the Symmetric card chosen by its fabric.** It
+now tries every plan — the symmetric fits, the mirrored halves, and every
+other card's plan as it is (a plan that isn't symmetric on paper can come out
+symmetric in the fabric) — and picks, among those whose form is within a
+stitch of the nearest (outline, points and area, symmetry left out), the one
+whose relaxed fabric is most symmetric; its knitting order is chosen the same
+way. Without that "near enough" a crude band won for the oval and the blob:
+perfectly symmetric, half its area the wrong colour. Now:
+
+| Shape | Symmetric card | Once relaxed |
+|---|---|---|
+| S7 oval | 6 changed, points carried out evenly | left to right, the most symmetric card |
+| S8 teardrop | 5 changed, the symmetric teardrop | symmetric |
+| S13 blob inside a blob | 8 changed, like Grow evened out | the most symmetric real fit; none fully |
+
+The Draw tab takes about 11 s to work out the oval.
+
 **Steps:**
 
 1. **Commit and push** what exists.
