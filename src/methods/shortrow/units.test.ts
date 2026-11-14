@@ -83,9 +83,14 @@ describe("fitting symmetric (PLAN.md §6, round 3, step 2)", () => {
     };
   };
 
-  it("leaves a symmetric drawing that keeps the laws as it is: the oval", () => {
+  it("eases the oval's two points alike, left to right, and it knits: 2 stitches", () => {
+    // Symmetric top to bottom as well, it can't keep the near point law: it
+    // is an odd number of ridges thick everywhere (PLAN.md §6).
     const g = shape("S7");
-    expect(fitUnits(g, "both", { steadyThickness: false, mirror: mirror(g) }).changed).toEqual([]);
+    const fitted = fitUnits(g, "both", { steadyThickness: false, mirror: { columns: mirror(g).columns, ridges: null } });
+    expect(fitted.changed).toHaveLength(2);
+    expect(fitted.changed.map((c) => c.column).sort((x, y) => x - y)).toEqual([4, 13]);
+    expect(knitShortRows(fitted.plan).problems).toEqual([]);
   });
 
   it("makes every fitted teardrop symmetric left to right", () => {

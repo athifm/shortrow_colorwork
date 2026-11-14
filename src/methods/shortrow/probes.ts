@@ -621,4 +621,48 @@ AABBCCCBAA
 AAABBBBAAA
 AAAAAAAAAA`,
   },
+  {
+    // The near point law (PLAN.md §6, the builder gap): the right-hand point
+    // is one ridge, then 3 beside it.
+    id: "E25",
+    name: "lens, right-hand point growing to 3 ridges",
+    carry: 1,
+    grid: `AAAAAAAAAA
+AAAABBAAAA
+AABBBBBBAA
+AAAABBAAAA
+AAAAAAAAAA`,
+  },
+  {
+    id: "E26",
+    name: "the same, right-hand point growing to 2",
+    carry: 0,
+    grid: `AAAAAAAAAA
+AAAABBBAAA
+AABBBBBBAA
+AAAABBAAAA
+AAAAAAAAAA`,
+  },
+  {
+    // The narrow peak law: 3 ridges between 2 and 1, more than its
+    // neighbours together less a ridge.
+    id: "E27",
+    name: "a column too thick for its neighbours (1, 2, 3, 1 ridges)",
+    carry: 1,
+    grid: `AAAAAAAA
+AAAABAAA
+AAABBBBA
+AAAABBAA
+AAAAAAAA`,
+  },
+  {
+    id: "E28",
+    name: "the same with room (1, 2, 3, 2, 1 ridges)",
+    carry: 0,
+    grid: `AAAAAAAAA
+AAAAABAAA
+AAABBBBBA
+AAAABBBAA
+AAAAAAAAA`,
+  },
 ];

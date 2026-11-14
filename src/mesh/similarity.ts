@@ -29,6 +29,8 @@ export interface Similarity {
    *  none. And the share of shape cells that don't match their mirror. */
   symmetric: boolean | null;
   asymmetry: number;
+  /** For a drawing symmetric both ways: which the look keeps. */
+  kept: { columns: boolean; ridges: boolean } | null;
   /** Peaks and troughs of the outlines, drawn and knitted. */
   points: { drawn: number; got: number };
   /** The share of the drawing's shape cells, and of the look's, that are
@@ -157,22 +159,32 @@ export function similarity(drawing: Grid, look: Yarn[][]): Similarity {
   const axes = mirrorAxes(drawing);
   let symmetric: boolean | null = null;
   let asymmetry = 0;
+  let broken = 0;
+  let kept: Similarity["kept"] = null;
   if (axes.columns !== null || axes.ridges !== null) {
     let shape = 0;
     let off = 0;
+    const offBy = { columns: 0, ridges: 0 };
     look.forEach((row, r) =>
       row.forEach((y, c) => {
         if (y === background) return;
         shape++;
-        const mirrors: [number, number][] = [];
-        if (axes.columns !== null) mirrors.push([r, axes.columns - c]);
-        if (axes.ridges !== null) mirrors.push([axes.ridges - r, c]);
         const at = ([mr, mc]: [number, number]) => (mr >= 0 && mr < look.length && mc >= 0 && mc < row.length ? look[mr][mc] : background);
-        if (mirrors.some((m) => at(m) !== y)) off++;
+        const across = axes.columns !== null && at([r, axes.columns - c]) !== y;
+        const upDown = axes.ridges !== null && at([axes.ridges - r, c]) !== y;
+        if (across) offBy.columns++;
+        if (upDown) offBy.ridges++;
+        if (across || upDown) off++;
       }),
     );
     asymmetry = shape ? off / shape : 0;
     symmetric = off === 0;
+    // Each of the drawing's symmetries lost costs its share of LOPSIDED: one
+    // kept of two is half as lopsided (the near point law can rule out both
+    // at once — PLAN.md §6).
+    const axesDrawn = (axes.columns !== null ? 1 : 0) + (axes.ridges !== null ? 1 : 0);
+    broken = ((offBy.columns > 0 ? 1 : 0) + (offBy.ridges > 0 ? 1 : 0)) / axesDrawn;
+    if (axes.columns !== null && axes.ridges !== null) kept = { columns: offBy.columns === 0, ridges: offBy.ridges === 0 };
   }
 
   const points = {
@@ -195,8 +207,8 @@ export function similarity(drawing: Grid, look: Yarn[][]): Similarity {
   const penalty =
     meanOff +
     WORST_WEIGHT * worst +
-    (symmetric === false ? LOPSIDED + asymmetry : 0) +
+    (symmetric === false ? LOPSIDED * broken + asymmetry : 0) +
     PER_POINT * Math.abs(points.drawn - points.got) +
     AREA_WEIGHT * wrongArea;
-  return { meanOff, worstOff: worst, symmetric, asymmetry, points, wrongArea, penalty };
+  return { meanOff, worstOff: worst, symmetric, asymmetry, kept, points, wrongArea, penalty };
 }

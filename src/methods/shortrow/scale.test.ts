@@ -38,10 +38,12 @@ describe("wider ×2", () => {
   });
 
   it("helps your fish, but not enough: it is more than twice too steep", () => {
-    const before = checkLaws(shape("S16")).length;
-    const after = laws("S16", widen).length;
-    expect(after).toBeLessThan(before);
-    expect(after).toBeGreaterThan(0);
+    // Its tip and its bump are cured; steep slopes, and a near point, remain.
+    const before = laws("S16", (g) => g);
+    const after = laws("S16", widen);
+    expect(count(before, "tip") + count(before, "bump")).toBeGreaterThan(0);
+    expect(count(after, "tip") + count(after, "bump")).toBe(0);
+    expect(after.length).toBeGreaterThan(0);
   });
 });
 

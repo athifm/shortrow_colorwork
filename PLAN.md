@@ -781,6 +781,86 @@ of that card. The shapes this app is for are now S1–S16.
 but the builder can't knit: the oval (S7), the blob inside a blob (S13), and
 the teardrop grown into a lemon (step 5).
 
+**The builder gap, found (2026-11-13): not the builder — a missing law, the
+near-end point.** All three have the same right-hand end: a point one ridge
+thick, then 3 ridges in the next column. Take that one stitch off and the
+lemon and the oval knit at once, one ball each.
+
+Why. Each stitch's rows go left, right, left, right in turn. Under the point,
+the background has knitted whole ridges, so the point's next row must head
+left — it can only come in from the right, so it is the shape's first row,
+where its ball joins; and its second row is the shape's last. Every pass
+through the next column in, between those two, must turn there, and two
+turns in a column need an ordinary row between: room for one turn only. So
+**beside a right-hand point, at most 2 ridges.** At the left-hand point the
+point is a turn partway through the trip, with ordinary rows either side, so
+3 ridges fit there. (Joining the shape a stitch in from its point was tried
+in the builder and can't work, for the same reason.)
+
+Settled for certain by the try-everything checker, on a small lens:
+
+| Small lens | Book's way? | Least carry |
+|---|---|---|
+| as drawn, right-hand point 1 → 3 ridges | no, ruled out | 1 stitch |
+| right-hand point eased, 1 → 2 → 3 | yes | 0 |
+| left-hand point eased instead | no | 1 stitch |
+
+Your call: **(c) both.** The law goes in, and the fitter eases a right-hand
+point a stitch for the book's-way cards (both points alike on a symmetric
+card): the oval eased at column 4 knits, one ball each. And a labelled extra
+card keeps the shape as drawn with the yarn carried 1 stitch — not the book's
+way.
+
+**Done (2026-11-13): the near point law, and the fitter keeps it.** Law 7 on
+the Draw tab (`laws.ts`, "near point"); the fitter carries a flag "still on
+a near point" and won't let the shape grow by more than 2 there (`units.ts`).
+What it showed:
+- **The laws are a guarantee again for every shape here:** S5 fish with a
+  tail, S7 oval and S13 blob inside a blob all break this law — the three
+  that kept every law yet couldn't be knitted. (The fish's body comes to a
+  point at its right-hand end and grows to 3.) The edge probe E8, "peak one
+  stitch wide, points at both ends — needs a carry of 1", is the same law.
+- **The oval now knits the book's way,** one stitch eased (column 4, ridge
+  2), 2 balls — and its predicted look is exactly the drawing: the ridges
+  bend over the eased stitch (guessed physics until calibration).
+- **Symmetric both ways and a right-hand point can't go together:** an oval
+  symmetric top to bottom is an odd number of ridges thick in every column,
+  so beside its point it can't be 2. The Symmetric card now also tries left
+  to right only, and top to bottom only; the shape measure counts each
+  symmetry lost as half of "lopsided", and the card says "symmetric left to
+  right only".
+
+**The carry card (b), not built yet.** How the try-everything checker knits
+the small lens with a 1-stitch carry: the pink joins where the shape grows,
+not at its point; it knits the point in separate small pieces later, with
+the grey knitting single stitches between, and the pink carried a stitch
+twice. A real extension of the builder.
+
+**The blob inside a blob, found (2026-11-13): another missing law, the
+narrow peak.** Eased at both right-hand points, it kept every law and was
+still stuck — always at column 9 of the inner colour, eased whichever way.
+There the inner colour runs 1, 1, 2, 3, 1, 1 ridges from its point: 3 ridges
+between 2 and 1. Every pass over a column carries on into one of its
+neighbours (a pass of one stitch would turn on a turn), and the yarn crosses
+it out and back at least once. So **a column is at most a ridge less thick
+than its two neighbours together.** Settled by the try-everything checker:
+
+| Profile, right to left | Law says | Checker, certain |
+|---|---|---|
+| 1, 2, 1 | no | carry of 1 |
+| 1, 2, 4, 2, 1 | no | carry of 1 |
+| 1, 2, 3, 1 | no | carry of 1 |
+| 1, 2, 3, 2, 1 | fine | the book's way |
+| 1, 2, 3, 3, 2, 1 | fine | the book's way |
+
+Law 8 on the Draw tab (`laws.ts`), kept by the fitter (`units.ts`: it
+remembers how much the last column rose, and the next must be at least that
+plus one thick). Checked only on shapes with nothing inside them: a shape
+with one inside also hands over, so its passes can stop without a turn. New
+edge probes, proven in the tests: E25 and E26 (near point, with and without),
+E27 and E28 (narrow peak, with and without). Every shape that keeps the laws
+still knits; the blob inside a blob's cards all knit the book's way.
+
 **Steps:**
 
 1. **Commit and push** what exists.

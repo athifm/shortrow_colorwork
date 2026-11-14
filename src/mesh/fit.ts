@@ -341,13 +341,20 @@ function symmetricVersion(drawing: Grid, plans: Grid[], physics: FabricPhysics):
   // First, shapes fitted symmetric from the start (units.ts, `mirror`): both
   // ends pointed alike. Then the mirrored halves.
   const fittedSymmetric = new Map<string, Grid>();
-  for (const softening of ["give way", "both", "grow"] as Softening[]) {
-    for (const strict of [true, false]) {
-      for (const steadyThickness of [true, false]) {
-        const plan = fitUnits(drawing, softening, { strict, steadyThickness, mirror: axes }).plan;
-        const key = plan.cells.map((row) => row.join("")).join("/");
-        fittedSymmetric.set(key, plan);
-        candidates.delete(key);
+  // Symmetric both ways if drawn so, and also each way alone: the near point
+  // law can rule out both at once (PLAN.md §6) — an oval symmetric top to
+  // bottom is an odd number of ridges thick everywhere, so its right-hand
+  // point can't grow by 2.
+  const mirrors = axes.columns !== null && axes.ridges !== null ? [axes, { columns: axes.columns, ridges: null }, { columns: null, ridges: axes.ridges }] : [axes];
+  for (const mirror of mirrors) {
+    for (const softening of ["give way", "both", "grow"] as Softening[]) {
+      for (const strict of [true, false]) {
+        for (const steadyThickness of [true, false]) {
+          const plan = fitUnits(drawing, softening, { strict, steadyThickness, mirror }).plan;
+          const key = plan.cells.map((row) => row.join("")).join("/");
+          fittedSymmetric.set(key, plan);
+          candidates.delete(key);
+        }
       }
     }
   }

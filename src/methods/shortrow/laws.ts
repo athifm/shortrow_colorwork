@@ -21,6 +21,14 @@
  *  - **tip**: at its far end — the left, where its yarn turns — short of the
  *    fabric's edge, a shape ends one ridge thick. A straight side there is
  *    intarsia's. Its near end may be blunt.
+ *  - **near point**: where its near end is a point one ridge thick, the shape
+ *    is at most 2 ridges thick where it first grows. The point's two rows are
+ *    the shape's first and last, so the turns between have room for one.
+ *  - **narrow peak**: a column is at most a ridge less thick than its two
+ *    neighbours together. Every pass over it carries on into one of them (a
+ *    pass of one stitch would turn on a turn), and the yarn crosses it out
+ *    and back at least once. Checked on shapes with nothing inside them,
+ *    whose rows all turn; a shape with one inside also hands over.
  *
  * These are the same conditions units.ts fits a shape to. The other two laws —
  * one ball per shape, and balance — are about the knitting, not the drawing:
@@ -30,7 +38,7 @@ import type { Yarn } from "./passes";
 import type { Grid } from "./grid";
 import { blobsOf } from "./units";
 
-export type Law = "one piece" | "slope" | "bump" | "tip";
+export type Law = "one piece" | "slope" | "bump" | "tip" | "near point" | "narrow peak";
 
 export interface Breach {
   law: Law;
@@ -120,6 +128,24 @@ export function checkLaws(grid: Grid): Breach[] {
       });
     }
 
+    // The near point: a shape that comes to a point one ridge thick at its
+    // near end, short of the fabric's edge, is at most 2 ridges thick where
+    // it first grows (PLAN.md §6, the builder gap). The point's two rows are
+    // the shape's first and last; every row between must turn short of it,
+    // in the column where it grows, and two turns there would stack.
+    if (from > 0 && thick(from) === 1) {
+      let c = from + 1;
+      while (c <= to && span[c] !== null && thick(c) === 1) c++;
+      if (c <= to && span[c] !== null && thick(c) > 2) {
+        breaches.push({
+          law: "near point",
+          colour,
+          cells: cellsOf(c, at(c).bottom, at(c).top),
+          why: `Yarn ${colour} comes to a point at its right-hand end, then grows to ${thick(c)} ridges at column ${c + 1}. Beside a right-hand point, 2 at most: the point's rows are the shape's first and last, so the turns between would land on each other.`,
+        });
+      }
+    }
+
     for (let c = from + 1; c <= to; c++) {
       if (span[c] === null || span[c - 1] === null) continue;
       // Slope: each edge on its own — the layer under it and the layer over
@@ -141,6 +167,20 @@ export function checkLaws(grid: Grid): Breach[] {
           colour,
           cells: cells.length > 0 ? cells : cellsOf(c, b.bottom, b.top),
           why: `Too steep between columns ${c} and ${c + 1}: an edge of yarn ${colour} moves ${most} ridges in one stitch. Short rows manage one — each turn a stitch further on.`,
+        });
+      }
+    }
+
+    // Narrow peaks: thicker than its two neighbours together, less a ridge.
+    if (blob.children.length === 0) {
+      for (let c = from + 1; c < to; c++) {
+        if (span[c - 1] === null || span[c] === null || span[c + 1] === null) continue;
+        if (thick(c) <= thick(c - 1) + thick(c + 1) - 1) continue;
+        breaches.push({
+          law: "narrow peak",
+          colour,
+          cells: cellsOf(c, at(c).bottom, at(c).top),
+          why: `Yarn ${colour} is ${thick(c)} ridges thick at column ${c + 1}, between ${thick(c - 1)} and ${thick(c + 1)}. A column can be at most a ridge less than its two neighbours together: every pass over it carries on into one of them, and the yarn must cross it out and back.`,
         });
       }
     }

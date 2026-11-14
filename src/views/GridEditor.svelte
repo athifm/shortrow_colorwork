@@ -323,6 +323,8 @@
     bump: { mark: "2", name: "One-stitch bump", rule: "a bump one stitch wide puts two turns on that stitch" },
     tip: { mark: "3", name: "Tip", rule: "a shape ends in a point one ridge thick, not a straight side" },
     "one piece": { mark: "6", name: "One piece", rule: "a shape has one stretch of its colour in each column" },
+    "near point": { mark: "7", name: "Near point", rule: "beside a point at a shape's right-hand end, 2 ridges at most" },
+    "narrow peak": { mark: "8", name: "Narrow peak", rule: "a column is at most a ridge less thick than its two neighbours together" },
   };
   // The try-everything checker (oracle.ts): only on request, and only as
   // far as it can go in a few seconds — it is certain for small drawings,
@@ -403,7 +405,7 @@
     both: "Added or taken, whichever changes the fewest stitches.",
     "ridge on top":
       "A shape touches the top edge, which short rows can't knit with one ball: one more ridge of background above it, fitted the closest way.",
-    symmetric: "Your drawing is symmetric: the closest version that is too, left to right and top to bottom as drawn.",
+    symmetric: "Your drawing is symmetric: the closest version that is too — both ways if it can be, or one way where the laws allow only that.",
   };
   const KIND_NAME: Record<UnitKind, string> = {
     stripe: "a stripe",
@@ -425,7 +427,16 @@
     if (!s) return `${closeness(v)}% as you drew it`;
     const off = (d: number) => `${d.toFixed(1)} ${d === 1 ? "stitch" : "stitches"}`;
     const parts = [`outline off by ${off(s.meanOff)} on average, ${off(s.worstOff)} at worst`];
-    if (s.symmetric !== null) parts.push(s.symmetric ? "symmetric, as drawn" : "lopsided — your drawing is symmetric");
+    if (s.symmetric !== null)
+      parts.push(
+        s.symmetric
+          ? "symmetric, as drawn"
+          : s.kept?.columns
+            ? "symmetric left to right only"
+            : s.kept?.ridges
+              ? "symmetric top to bottom only"
+              : "lopsided — your drawing is symmetric",
+      );
     parts.push(s.points.got === s.points.drawn ? `its ${s.points.drawn} ${s.points.drawn === 1 ? "point" : "points"} kept` : `${s.points.got} points where you drew ${s.points.drawn}`);
     return parts.join(" · ");
   };

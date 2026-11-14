@@ -175,6 +175,7 @@ function fitOne(
   nearFree: boolean,
   steadyThickness: boolean,
   mirror: Mirror = { columns: null, ridges: null },
+  leaf = false,
 ): { from: Column; to: Column; bottom: number[]; top: number[] } | null {
   const INF = Number.POSITIVE_INFINITY;
   const STEP = 1 / (N * H + 1);
@@ -241,7 +242,20 @@ function fitOne(
   // finds its way round one, and the shape is then nearer the drawing.)
   const UNDER = 1;
   const OVER = UNDER * 2;
-  const FLAGS = OVER * 2;
+  // Still on a point at the near end, one ridge thick since it started short
+  // of the fabric's edge: where it first grows, 2 ridges at most (the near
+  // point law — the point's rows are the shape's first and last).
+  const POINT = OVER * 2;
+  // How much thicker this column is than the one before, 0 to 2 (no less
+  // than 0): the narrow peak law, for a shape with nothing inside it. A
+  // column is at most a ridge less thick than its two neighbours together —
+  // every pass over it carries on into one of them, and the yarn crosses it
+  // out and back at least once. So a column that rose by `rise` needs the
+  // next to be at least rise + 1 thick.
+  const RISE = POINT * 2;
+  const RISES = 1 + 2;
+  const FLAGS = RISE * RISES;
+  const riseOf = (f: number) => Math.floor(f / RISE);
   const S = (H + 1) * (H + 1) * FLAGS;
   const at = (b: number, t: number, f: number) => (b * (H + 1) + t) * FLAGS + f;
   const dp = Array.from({ length: N }, () => new Float64Array(S).fill(INF));
@@ -265,7 +279,7 @@ function fitOne(
         // from, where the yarn waits, and needs no turn. Mirrored, the near
         // end is the far end's image, and must be a tip too.
         const edge = c === 0 && (A === null || partner(c) === N - 1);
-        if ((edge || k === 1 || (nearFree && A === null)) && joins(c, c - 1, b, t)) dp[c][at(b, t, 0)] = before[c] + here;
+        if ((edge || k === 1 || (nearFree && A === null)) && joins(c, c - 1, b, t)) dp[c][at(b, t, !edge && k === 1 ? POINT : 0)] = before[c] + here;
         if (c > 0) {
           for (let db = -1; db <= 1; db++) {
             for (let dt = -1; dt <= 1; dt++) {
@@ -293,9 +307,13 @@ function fitOne(
                 const overApart = pt < ceiling[c - 1] && t < ceiling[c] && Math.max(pt, t) >= Math.min(ceiling[c - 1], ceiling[c]);
                 if (underApart || overApart) continue;
               }
-              const f = (du > 0 ? UNDER : 0) | (dv > 0 ? OVER : 0);
+              const grew = (du > 0 ? UNDER : 0) | (dv > 0 ? OVER : 0);
               for (let pf = 0; pf < FLAGS; pf++) {
                 if (strict && ((pf & UNDER && du < 0) || (pf & OVER && dv < 0))) continue;
+                if (pf & POINT && k > 2) continue;
+                if (leaf && k < riseOf(pf) + 1) continue;
+                const rise = leaf ? Math.max(0, Math.min(2, k - (pt - pb))) : 0;
+                const f = grew | (pf & POINT && k === 1 ? POINT : 0) | (rise * RISE);
                 const prev = dp[c - 1][at(pb, pt, pf)];
                 if (prev === INF) continue;
                 const w = prev + here + STEP * (Math.abs(db) + Math.abs(dt));
@@ -314,7 +332,10 @@ function fitOne(
         const endsHere = A === null ? (c === N - 1 || k === 1) && joins(c, c + 1, b, t) : c === last;
         if (endsHere) {
           for (let f = 0; f < FLAGS; f++) {
-            if (A !== null && strict && partner(c) === c && f !== 0) continue;
+            if (A !== null && strict && partner(c) === c && (f & (UNDER | OVER)) !== 0) continue;
+            // Mirrored about this middle column: its neighbours are alike, so
+            // it rose by `rise` from both — 2 × rise ≤ its thickness − 1.
+            if (A !== null && leaf && partner(c) === c && 2 * riseOf(f) > k - 1) continue;
             const v = dp[c][at(b, t, f)];
             if (v < INF && v + after[c + 1] < best) {
               best = v + after[c + 1];
@@ -470,10 +491,21 @@ export function fitUnits(
       }
       return axis;
     };
-    const fit = fitOne(N, H, mine, allowed, softening, strict, floor, ceiling, parentUnit !== undefined, nearFree, steadyThickness, {
-      columns: selfMirror("columns"),
-      ridges: selfMirror("ridges"),
-    });
+    const fit = fitOne(
+      N,
+      H,
+      mine,
+      allowed,
+      softening,
+      strict,
+      floor,
+      ceiling,
+      parentUnit !== undefined,
+      nearFree,
+      steadyThickness,
+      { columns: selfMirror("columns"), ridges: selfMirror("ridges") },
+      blob.children.length === 0,
+    );
     if (!fit) {
       // Left as drawn.
       unfitted.push(blob.id);
