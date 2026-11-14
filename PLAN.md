@@ -932,6 +932,24 @@ perfectly symmetric, half its area the wrong colour. Now:
 
 The Draw tab takes about 11 s to work out the oval.
 
+**Short check-review, set up 2026-11-14** (`review/review.json`, fresh; round
+4 kept as `review-round4-2026-11-14.json`). Only four shapes, to check the
+new measure against your eye: S7 oval, S8 teardrop, S13 blob inside a blob,
+S14 your nested triangles. For each: does the suggested card look nearest,
+and does the Symmetric card look the most symmetric?
+
+**Read 2026-11-14.** S7 oval: looks right — "manual selection of the several
+options is the way for these symmetric ones". S8 teardrop: looks right, the
+Symmetric card good. S13 blob inside a blob: "symmetric is much better than
+the suggested one" (give way). S14: looks right. So the measure now matches
+your eye on the Symmetric card; what's left is which card is *suggested* for
+a symmetric drawing.
+
+**Done (2026-11-14):** for a symmetric drawing, the Symmetric card is the
+suggestion whenever it knits the book's way; the other cards stay beside it
+for you to pick from (your oval note). The blob inside a blob now suggests
+its Symmetric card; so does the oval.
+
 **Steps:**
 
 1. **Commit and push** what exists.

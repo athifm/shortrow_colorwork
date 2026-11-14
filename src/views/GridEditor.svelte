@@ -370,11 +370,15 @@
   /** The book's way (PLAN.md §6, law 4): no row with two balls of one
    *  colour. Only such a way is ever suggested. */
   const bookWay = (v: Version) => knits(v) && intarsiaRows(v) === 0;
-  /** Suggested: the book's way whose look is nearest the drawing's shape,
+  /** Suggested: for a symmetric drawing, the Symmetric card when it keeps to
+   *  the book (your call, 2026-11-14: the others stay beside it to pick
+   *  from); else the book's way whose look is nearest the drawing's shape,
    *  then the fewest balls, then the fewest stitches changed. None, if no way
    *  keeps to the book. */
   const suggested = $derived.by((): Way | null => {
     if (!versions) return null;
+    const symmetric = versions.find((v) => v.way === "symmetric");
+    if (symmetric && bookWay(symmetric)) return symmetric.sameAs ?? "symmetric";
     const ok = shown.filter(bookWay);
     ok.sort((a, b) => (a.shape?.penalty ?? Infinity) - (b.shape?.penalty ?? Infinity) || a.balls - b.balls || a.changed.length - b.changed.length);
     return ok[0]?.way ?? null;
