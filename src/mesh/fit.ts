@@ -19,7 +19,7 @@ import { readWritten, type PassInfo } from "../methods/shortrow/written";
 import { blobsOf, fitUnits, type Softening, type Unit } from "../methods/shortrow/units";
 import type { Change } from "../methods/shortrow/round";
 import type { Grid } from "../methods/shortrow/grid";
-import { edgesOf, lookOf, type Edge } from "./look";
+import { edgesOf, lookOf, runsOf, type Edge, type Run } from "./look";
 import { similarity, mirrorAxes, type Similarity } from "./similarity";
 import { settle, type Shape } from "./settle";
 import type { Physics } from "./convert";
@@ -45,6 +45,10 @@ export interface Prediction {
   /** Where the edges between colours land, on the drawing's grid; none when
    *  the fabric doesn't lie flat as a rectangle. */
   edges: Edge[];
+  /** Each column as stretches of colour at the heights its rows settle to —
+   *  what the shape measure judges; null when the fabric doesn't lie flat as a
+   *  rectangle. */
+  relaxed: Run[][] | null;
   /** Written rows knitted intarsia-style: a colour stops for another and then
    *  carries on beyond it from a second ball, so the row uses two balls of one
    *  colour. (Handing over into a shape is the book's way: the colour comes
@@ -73,7 +77,17 @@ export function predictionOf(stitches: number, built: readonly Pass[], physics: 
   const upright = fabric.balanced && shape.fanDegrees === 0;
   const lower = shape.y.map((col, i) => col.map((y, r) => y - shape.below[i][r]));
   const upper = shape.y.map((col, i) => col.map((y, r) => y + shape.above[i][r]));
-  return { written: written.text, passes, info, endsInTurn, fabric, shape, edges: upright ? edgesOf(fabric, lower, upper, colourOfStrand) : [], intarsiaRows };
+  return {
+    written: written.text,
+    passes,
+    info,
+    endsInTurn,
+    fabric,
+    shape,
+    edges: upright ? edgesOf(fabric, lower, upper, colourOfStrand) : [],
+    relaxed: upright ? runsOf(fabric, lower, upper, colourOfStrand) : null,
+    intarsiaRows,
+  };
 }
 
 export type Way = "as drawn" | "nudged" | Softening | "ridge on top" | "symmetric";
@@ -139,7 +153,9 @@ function version(
     prediction,
     look,
     mismatch: look ? differences(look, drawing.cells) : [],
-    shape: look ? similarity(drawing, look) : null,
+    // Judged on the relaxed fabric itself, bends and all (round 4); on the
+    // cell reading only where there's no relaxed rectangle to judge.
+    shape: prediction.relaxed ? similarity(drawing, prediction.relaxed) : look ? similarity(drawing, look) : null,
   };
 }
 

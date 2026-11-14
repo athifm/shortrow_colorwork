@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { similarity, mirrorAxes } from "./similarity";
 import { parseGrid } from "../methods/shortrow/grid";
+import { gridRuns } from "./look";
 
 /** Does the look have the drawing's shape? (PLAN.md §6, round 3.) */
 
@@ -47,6 +48,17 @@ AABBBBBBAA
 AAAAAAAAAA`);
     const s = similarity(LENS, flat.cells);
     expect(s.worstOff).toBeGreaterThanOrEqual(1);
+  });
+
+  it("judges the shape's own form: a lens tilted, one end higher, is still symmetric", () => {
+    // Round 4, your note on the blob inside a blob: the eye forgives a tilt.
+    const tilted = gridRuns(LENS.cells).map((col, i) => col.map((r) => ({ ...r, from: r.from + i / 20, to: r.to + i / 20 })));
+    expect(similarity(LENS, tilted).symmetric).toBe(true);
+  });
+
+  it("judges symmetry about the shape's own middle: a lens a stitch over is still symmetric", () => {
+    const shifted = LENS.cells.map((row) => [...row.slice(1), "A"]);
+    expect(similarity(LENS, shifted).symmetric).toBe(true);
   });
 
   it("finds a drawing's axes of symmetry", () => {

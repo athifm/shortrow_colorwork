@@ -89,6 +89,51 @@ export function needleOf(fabric: Fabric, colourOf: (strand: Yarn) => Yarn): Yarn
   return Array.from({ length: ridges }, (_, r) => fabric.stacks.map((stack) => colourOf(stack[2 * r])));
 }
 
+/** A stretch of one colour up one column, from one height to another, in
+ *  ridges above the cast-on. */
+export interface Run {
+  colour: Yarn;
+  from: number;
+  to: number;
+}
+
+/** Each column of the relaxed fabric as its stretches of colour, bottom to
+ *  top, at the heights the rows settle to — what the eye sees, bends and all
+ *  (PLAN.md §6, round 4: the cell reading threw the bends away). `lower` and
+ *  `upper` as for edgesOf; columns must be upright. */
+export function runsOf(
+  fabric: Fabric,
+  lower: readonly (readonly number[])[],
+  upper: readonly (readonly number[])[],
+  colourOf: (strand: Yarn) => Yarn,
+): Run[][] {
+  const ridges = (rows: number) => (rows - BOTTOM_EDGE) / 2;
+  return fabric.stacks.map((stack, i) => {
+    const out: Run[] = [];
+    stack.forEach((strand, k) => {
+      const colour = colourOf(strand);
+      const last = out[out.length - 1];
+      if (last && last.colour === colour) last.to = ridges(upper[i][k]);
+      else out.push({ colour, from: ridges(lower[i][k]), to: ridges(upper[i][k]) });
+    });
+    return out;
+  });
+}
+
+/** A grid's columns as stretches of colour: cell r spans heights r to r + 1. */
+export function gridRuns(cells: readonly (readonly Yarn[])[]): Run[][] {
+  const width = cells[0]?.length ?? 0;
+  return Array.from({ length: width }, (_, c) => {
+    const out: Run[] = [];
+    cells.forEach((row, r) => {
+      const last = out[out.length - 1];
+      if (last && last.colour === row[c]) last.to = r + 1;
+      else out.push({ colour: row[c], from: r, to: r + 1 });
+    });
+    return out;
+  });
+}
+
 /** A piece of the outline of a patch of colour in the relaxed fabric, on the
  *  drawing's grid: across one column at a height, or up the line between two
  *  columns. Heights are in ridges above the cast-on; column 0 is column 1. */

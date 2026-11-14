@@ -861,6 +861,60 @@ edge probes, proven in the tests: E25 and E26 (near point, with and without),
 E27 and E28 (narrow peak, with and without). Every shape that keeps the laws
 still knits; the blob inside a blob's cards all knit the book's way.
 
+**Round 4 review, set up 2026-11-13** (`review/review.json`, fresh; round 3
+kept as `review-round3-2026-11-13.json`; your Peak carried over). What to
+look at, in order:
+1. S7 oval — the book's way now, one stitch eased; its predicted look is the
+   drawing.
+2. S13 blob inside a blob — both new laws; its best card, Symmetric, changes 6.
+3. S5 fish with a tail — breaks the near point law; its nearest card still
+   isn't the book's way (4 balls).
+4. S8 teardrop — the Symmetric card, and whether the lemon (step 5) is
+   wanted.
+5. S16 your fish — still no book's way (8 balls).
+The rest keep every law and knit as drawn.
+
+**Round 4 review, read 2026-11-14.** S7 oval: "symmetric is better" (than
+the suggested give-way card). S8 teardrop: "symmetric is decent enough". S13
+blob inside a blob: looks right — "shape grows" looks more symmetric than the
+Symmetric card in the fully relaxed fabric simulation. S5 fish with a tail:
+intarsia only, drop it from short-row testing. (S16 not reviewed.)
+
+What it says about the shape measure: it reads the predicted fabric back onto
+the grid, cell by cell, and judges that. By that reading the oval's give-way
+card is exactly the drawing (0.00) and the blob's grow card is lopsided —
+but in the relaxed fabric, which is what you look at, you see the opposite
+both times. The cell reading throws away the bends you see. So the measure
+should judge the relaxed fabric's own outline, and the Symmetric card should
+be the one whose relaxed fabric is symmetric, not whose plan is.
+
+Next, proposed:
+1. Shape measure on the relaxed fabric's outline, not the cell reading.
+2. The Symmetric card chosen by its relaxed fabric's symmetry (follows 1).
+3. Drop S5 as intarsia only, like the T.
+
+**Done (2026-11-14): 1 and 3.** S5 moved to the intarsia-only list. The shape
+measure now judges the relaxed fabric itself: each column as stretches of
+colour at the heights its rows settle to (`look.ts`, `runsOf`), outline,
+points and area compared at those heights. Looking at the two blob cards as
+you saw them taught two more things about symmetry:
+- **The eye forgives a tilt.** The Grow card's shape sits a little higher at
+  one end; its form, both ends pointed, is symmetric, and you read it so. So
+  symmetry is judged after taking out the best straight line through the
+  middles of the columns.
+- **About the shape's own middle,** not the drawing's: a shape half a stitch
+  over is still symmetric (being off is the outline's business).
+- **Left to right counts for more** where a drawing has both symmetries:
+  two-thirds of "lopsided", top to bottom one third (your oval note; and
+  short rows bow the fabric top to bottom anyway). A judgement to tune.
+
+Results: the blob's Grow card now measures more symmetric than its Symmetric
+card, as you saw it (its shape is still further from the drawing overall).
+Each card picks its knitting order by this measure, so the oval's give-way
+card now gets an order whose look is symmetric left to right, and it ranks
+first (0.78; Symmetric 0.90). Your nested triangles come out nearly, not
+exactly, symmetric once relaxed (6% of the shape).
+
 **Steps:**
 
 1. **Commit and push** what exists.

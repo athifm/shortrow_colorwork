@@ -214,17 +214,6 @@ AAAAAAAAAAAAAABB
 AAAAAAAAAAAAAAAA`,
   },
   {
-    id: "S5",
-    name: "fish with a tail",
-    grid: `AAAAAAAAAAAAAAAA
-AAAAAABBBAAAAAAA
-AABAABBBBBBAAAAA
-AAABBBBBBBBBBAAA
-AABAABBBBBBAAAAA
-AAAAAABBBAAAAAAA
-AAAAAAAAAAAAAAAA`,
-  },
-  {
     id: "S6",
     name: "zigzag band",
     grid: `AAAAAAAAAAAAAAAA
@@ -361,6 +350,18 @@ AAAAAAAAAAAAAAAA`,
  * them. Kept, and still on the Draw tab to try.
  */
 export const INTARSIA_SHAPES: Probe[] = [
+  {
+    // Your call, round 4: intarsia only.
+    id: "S5",
+    name: "fish with a tail",
+    grid: `AAAAAAAAAAAAAAAA
+AAAAAABBBAAAAAAA
+AABAABBBBBBAAAAA
+AAABBBBBBBBBBAAA
+AABAABBBBBBAAAAA
+AAAAAABBBAAAAAAA
+AAAAAAAAAAAAAAAA`,
+  },
   {
     // A crossbar on a stem: straight sides everywhere, the stem a vertical
     // column. Your call, round 3: intarsia only.
